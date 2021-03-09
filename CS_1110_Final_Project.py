@@ -4,7 +4,7 @@
 #   CS 1110 Final Project
 #######################################
 
-#This project was created in the fall of 2017
+#This project was created in the Fall semester of 2017 at the University of Virginia
 
 #######################################
 #   Purpose of Project
