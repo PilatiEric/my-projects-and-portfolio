@@ -1,3 +1,13 @@
+###############################
+#   CS 1110 Salary HW Assignment
+###############################
+
+#This was written in the Fall of 2017 for the CS 1110 course at the University of Virginia
+
+#This code searched through the HTML of a specific website and, with the use of regular expressions,
+#found the salary, job title, and pay rank of a UVA employee by entering their name or employee number into the "name" argument.
+
+
 import re
 import urllib.request
 
