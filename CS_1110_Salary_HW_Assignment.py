@@ -1,6 +1,6 @@
-###############################
+###################################
 #   CS 1110 Salary HW Assignment
-###############################
+###################################
 
 #This was written in the Fall of 2017 for the CS 1110 course at the University of Virginia
 
