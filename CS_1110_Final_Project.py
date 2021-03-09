@@ -1,5 +1,22 @@
 # Anna Winter (acw8sg) and Eric Pilati (ep9ca)
 
+#######################################
+#   CS 1110 Final Project
+#######################################
+
+#This project was created in the fall of 2017
+
+#######################################
+#   Purpose of Project
+#######################################
+
+#The code uses a program called Gamebox that allows the programmer to create a game through the use of walls, physics, controls, timing, and saved files.
+
+#This game gave the player different mazes, each progressively more difficult, in which they needed to gather all the coins around the level before returning to the treasure
+#chest at the center. This advanced them to the next level.
+
+#The code kept track of the player's time and even recorded the fastest time.
+
 import pygame
 import gamebox
 
