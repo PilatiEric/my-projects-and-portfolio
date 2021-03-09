@@ -4,7 +4,7 @@
 
 #This code was written in the Fall semester of 2017 for the CS 1110 course at the University of Virginia
 
-#This code took in a number from the user and converted it to Roman numeral.
+#This code takes in a number from the user and converted it to Roman numeral.
 
 num = int(input('Enter a number: '))
 while num < 1 or num > 4000:
