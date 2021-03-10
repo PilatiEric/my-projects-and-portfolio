@@ -1,3 +1,9 @@
+###################################
+#   Lous List HW Assignment
+###################################
+
+#This code was written in the Fall Semester of 2017 for the CS 1110 course at the University of Virginia
+
 import urllib.request
 
 
