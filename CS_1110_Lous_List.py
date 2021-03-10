@@ -37,3 +37,5 @@ def instructors(department):
                     list1.append(columns[4])
         list2 = sorted(list1)
         return list2
+    
+print(instructors("CS"))
