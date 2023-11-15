@@ -202,14 +202,13 @@ namespace SanDiego.Pages.Planning
             #endregion
 
             if (PO.CommitmentType == "Contract" &&
-       string.IsNullOrEmpty(PO.ContractNumber))
+                string.IsNullOrEmpty(PO.ContractNumber))
             {
                 ModelState.AddModelError("ContractNumValidation",
                                          "Contract # is required");
             }
 
-            if (
-                string.IsNullOrEmpty(PO.PSStatus))
+            if (string.IsNullOrEmpty(PO.PSStatus))
             {
                 ModelState.AddModelError("PSStatusValidation",
                                          "PSStatus # is required");
@@ -217,7 +216,6 @@ namespace SanDiego.Pages.Planning
 
             if (ModelState.IsValid)
             {
-
                 try
                 {
                     #region File Upload
@@ -275,30 +273,22 @@ namespace SanDiego.Pages.Planning
                     {
                         if (!escalationServ.IsRoutingConfigured(PO.ProjectId))
                         {
-                            return RedirectToPage("/planning/cost",
-                                                  new
-                                                  {
-                                                      poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
-                                                      msg = "Routing Configuration Not found for the Project."
-                                                  });
+                            return RedirectToPage("/planning/cost", new { poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
+                                                                          msg = "Routing Configuration Not found for the Project."
+                                                                        });
                         }
 
                         CostApprovalEscalation approver = escalationServ.GetNextApprover(PO.Id);
 
                         if (approver.ApproverId > 0)
                         {
-                            var res = escalationServ.AddCostForApproval(
-                                        new CostApprovals
-                                        {
-                                            CostId = PO.Id,
-                                            CreatedDate = DateTime.Now,
-                                            ApproverId = approver.ApproverId,
-                                            EscalationOrder = approver.EscalationOrder,
-                                            Remarks = "",
-                                            Status = "Pending"
-
-                                        }
-                                );
+                            var res = escalationServ.AddCostForApproval( new CostApprovals { CostId = PO.Id,
+                                                                                             CreatedDate = DateTime.Now,
+                                                                                             ApproverId = approver.ApproverId,
+                                                                                             EscalationOrder = approver.EscalationOrder,
+                                                                                             Remarks = "",
+                                                                                             Status = "Pending"
+                                                                                           });
                             if (res > 0)
                             {
                                 var code = escalationServ.GenerateCostApprovalToken(res.ToString());
