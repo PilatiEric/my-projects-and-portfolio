@@ -1,4 +1,22 @@
-﻿using Microsoft.AspNetCore.DataProtection;
+@{
+/***************************************************
+*  Edit Commitment page
+*
+*  This page is part of a site built to handle the 
+*  various financial and logistical aspects of projects 
+*  across multiple campuses and buildings.
+*
+*
+*  This is the back-end section of a page that allows 
+*  the user to edit an existing "commitment" or 
+*  purchase order. Not shown are the various services
+*  and SQL queries needed to pull the data from a
+*  Microsoft SQL Server and configure it to needed
+*  specifications.
+****************************************************/
+}
+
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -177,12 +195,9 @@ namespace SanDiego.Pages.Planning
 
                 db2.DeletePO(poid);
 
-                return RedirectToPage("/planning/CostsLog",
-                                      new
-                                      {
-                                          id = DataProtector.EncryptId(_dataProtectionProvider, PO.ProjectId),
-                                          msg = "Commitment item has been deleted."
-                                      });
+                return RedirectToPage("/planning/CostsLog", new { id = DataProtector.EncryptId(_dataProtectionProvider, PO.ProjectId),
+                                                                  msg = "Commitment item has been deleted."
+                                                                });
             }
             #endregion
 
@@ -288,11 +303,10 @@ namespace SanDiego.Pages.Planning
                             {
                                 var code = escalationServ.GenerateCostApprovalToken(res.ToString());
                                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                                var callbackUrl = Url.Page(
-                                    "/Planning/POCostMailApproval",
-                                    pageHandler: null,
-                                    values: new { CostId = DataProtector.EncryptId(_dataProtectionProvider, PO.Id), approvalId = @DataProtector.EncryptId(_dataProtectionProvider, res), code },
-                                    protocol: Request.Scheme);
+                                var callbackUrl = Url.Page( "/Planning/POCostMailApproval",
+                                                            pageHandler: null,
+                                                            values: new { CostId = DataProtector.EncryptId(_dataProtectionProvider, PO.Id), approvalId = @DataProtector.EncryptId(_dataProtectionProvider, res), code },
+                                                            protocol: Request.Scheme);
                                 escalationServ.SendMail(escalationServ.GetById(res), callbackUrl);
                             }
                         }
@@ -326,14 +340,11 @@ namespace SanDiego.Pages.Planning
 
                     mail.SendEmailAsync(mm); // uncomment in production
                 }
-                return RedirectToPage("/planning/Cost",
-                                      new
-                                      {
-                                          poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
-                                          msg = "Cost item has been saved."
-                                      });
+                return RedirectToPage("/planning/Cost", new { poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
+                                                              msg = "Cost item has been saved."
+                                                            });
             }
-
+            
             return Page();
         }
     }
