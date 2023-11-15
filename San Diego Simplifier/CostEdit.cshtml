@@ -1,0 +1,458 @@
+﻿@page "{poid?}"
+@using Microsoft.AspNetCore.DataProtection
+@using System.IO
+@using SanDiego.Utility;
+
+@inject IDataProtectionProvider DataProtectionProvider
+@model SanDiego.Pages.Planning.CostEditModel
+
+@if (Model.Mesg != null)
+{
+    <h3 class="bg-success p-1 rounded">@Model.Mesg</h3>
+}
+
+<div class="col-xl-8 
+            mx-xl-auto">
+
+    <form id="poForm" 
+          method="post"
+          enctype="multipart/form-data">
+
+        <input type="hidden" 
+               asp-for="@Model.VendorName" />
+
+        <input type="hidden" 
+               asp-for="@Model.PS.CampusAbrev" />
+
+        <input type="hidden" 
+               asp-for="@Model.PS.ProjectTitle" />
+
+        <input type="hidden" 
+               asp-for="@Model.PO.ProjectId" 
+               value="@Model.PS.Id" />
+
+        <input type="hidden" 
+               asp-for="@Model.PO.RequestorId" />
+
+        <input type="hidden" 
+               asp-for="@Model.PO.Id" />
+
+        <input type="hidden" 
+               asp-for="@Model.StatusWas" />
+
+        <input type="hidden" 
+               id="deletePO" 
+               name="deletePO" 
+               value="" />
+
+        <h3>Edit Commitment <small>(or Commitment increase) </small></h3>
+        <span class="float-right">
+            <input type="button" 
+                   value="Save" 
+                   onclick="submitNewPO()" 
+                   class="btn btn-primary" />
+
+            <a asp-page="/planning/cost" 
+               asp-route-poid="@DataProtector.EncryptId(DataProtectionProvider, @Model.PO.Id)" 
+               class="btn btn-primary">Cancel</a>
+
+            <input id="deletePOButton" 
+                   type="button" 
+                   value="Delete Commitment" 
+                   onclick="deleteThisPO()" 
+                   class="btn btn-warning" />
+        </span>
+        <h3>@Model.PS.CampusAbrev  @Model.PS.ProjectTitle</h3>
+
+
+        <hr />
+        <div asp-validation-summary="All" 
+             class="text-danger"></div>
+
+        <table class="table table-borderless">
+            <tr>
+                <!-----CONTRACT #----->
+                <td>
+                    <b><u>Contract #:</u></b>
+                    <input asp-for="@Model.PO.ContractNumber" 
+                           onchange="filterNum(this)" 
+                           class="form-control" />
+                    <span asp-validation-for="@Model.ContractNumValidation"
+                          class="text-danger"></span></td>
+                </td>
+                <!-----COMMITMENT TYPE----->
+                <td>
+                    <b><u>Commitment Type:</u></b>
+                    <select asp-for="@Model.PO.CommitmentType" 
+                            class="form-control" 
+                            onchange="handleCommitmentTypeChange()">
+                        <option value="" selected>Please select...</option>
+                        <option value="Placeholder">Placeholder</option>
+                        <option value="Adjustment">Adjustment</option>
+                        <option value="Contract">Contract</option>
+                    </select>
+                    <span asp-validation-for="@Model.PO.CommitmentType" 
+                          class="text-danger"></span>
+                </td>                
+                <!-----DATE----->
+                <td>
+                    <b><u>Date:</u></b>
+                    <input asp-for="@Model.PO.ProcessDate" 
+                           class="form-control" />
+                </td>
+            </tr>
+
+            <tr>
+                <!-----VENDOR----->
+                <td>
+                    <b><u>Vendor:</u></b> <br />
+                    <small>Select a Vendor or select "New Vendor" and enter the vendors name in notes below</small>
+                    <select asp-for="@Model.PO.VendorId" 
+                            class="form-control">
+                        <option value="3">New Vendor</option>
+                        @foreach (var v in Model.Vendors)
+                        {
+                            <option value="@v.Id">@v.VendorName</option>
+                        }
+                    </select>
+                    <span asp-validation-for="@Model.PO.VendorId" 
+                          class="text-danger"></span></td>
+                
+                <!-----STATUS----->
+                <td>
+                    <br />
+                    <b><u>Status:</u></b>                    
+                    <select asp-for="@Model.PO.Status" 
+                            class="form-control">
+                        <option value="">Please select...</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                    </select></td>
+            </tr>
+
+            <tr>
+                <!-----DESCRIPTION OF WORK----->
+                <td colspan="4">
+                    <b><u>Description of Work:</u></b>
+                    <textarea asp-for="@Model.PO.Materials" 
+                              class="form-control"></textarea>
+                    <span asp-validation-for="@Model.PO.Materials" 
+                          class="text-danger"></span></td></tr>
+            <tr>
+                <!-----AMOUNT----->
+                <td>                    
+                    <b><u>Amount:</u></b>
+                    <input onchange="filterNum(this)" 
+                           asp-for="@Model.PO.TotalPrice" 
+                           class="form-control" />
+                    <span asp-validation-for="@Model.PO.TotalPrice" 
+                          class="text-danger"></span></td>
+                
+                <!-----REQUESTED BY----->
+                <td>
+                    <b><u>Requested By:</u></b>
+                    <input asp-for="@Model.PO.LastName" 
+                           disabled="disabled" 
+                           class="form-control" /> </td>
+            </tr>
+
+
+
+
+            <!--
+            Accounts Format and Item Length
+            -------------------------------
+
+            - Fund #: 4 digits long -- ex. 4301
+            - Dept #: 5 digits long -- ex. 76700
+            - Activ # (a.k.a. Product #): 6 digits long -- ex. 710000
+            - Budget # / Actl #: 4 digits long for both -- ex. 6999/6202
+                - PeopleSoft uses Actl #
+            -->
+
+            <tr>
+                <!-----ACCOUNT----->
+                <td colspan="4">
+                    <b><u>Account:</u></b>
+                    <input asp-for="@Model.PO.AccountString" 
+                           class="form-control" 
+                           placeholder="Select an account string from below, if available." /></td>
+            </tr>
+
+            <tr>
+                <!-----AVAILABLE ACCOUNTS----->
+                <td colspan="4">
+                    <b><u>Available Accounts:</u></b> (click on an account to select it)
+                    <select name="Account" 
+                            id="Account" 
+                            onchange="chgAcct()" 
+                            class="form-control">
+                        <option>Please Pick an Account...</option>
+                        @if (Model.Accounts.Any())
+                        {
+                            foreach (var item in Model.Accounts)
+                            {
+                                <option value="@item.Id" 
+                                        style="@(item.Balance == 0 ? "color: red;" : "")">
+                                    @*@item.ClassDescr  @item.Unit @item.Acct *@@item.Fund @item.Dept @item.Product @item.Prog @item.Class @item.BP @item.Proj
+                                    Bal: @item.Balance
+                                </option>
+                            }
+                        }
+                        else
+                        {
+                            <option>No Accounts Available</option>
+                        }
+                    </select></td>
+            </tr>
+
+            <tr>
+                <!-----FILE ATTACHMENT----->
+                <td colspan="4">
+                    <b><u>Attachment:</u></b>
+                    <input type="file" 
+                           id="attachmentInput" 
+                           name="Uploads" 
+                           class="form-control-file" 
+                           multiple />
+                    @if (!string.IsNullOrEmpty(Model.PO.FileName))
+                    {
+                        <div class="form-group">
+                            <label>Current Attachment:</label>
+                            <span id="attachmentFileName">@Model.PO.FileName</span>
+                        </div>
+                    }
+                </td>
+            </tr>
+
+            <tr>
+                <!-----NOTES----->
+                <td colspan="4">
+                    <b><u>Notes:</u></b>
+                    <textarea asp-for="@Model.PO.Notes" 
+                              class="form-control"></textarea></td>
+            </tr>
+
+            <tr>
+                <!-----PEOPLESOFT STATUS----->
+                <td>
+                    <b><u>PS Status:</u></b>
+                    <select asp-for="@Model.PO.PSStatus" 
+                            class="form-control">
+                        <option value="">Please select...</option>
+                        <option value="RequisitionSubmitted">Requisition Submitted</option>
+                        <option value="PurchaseOrderApproved">Purchase Order Approved</option>
+                        <option value="NoApplicable">Not Applicable</option>
+                    </select>
+                    @*<span asp-validation-for="Input.PSStatus" class="text-danger"></span>*@
+                    <span asp-validation-for="@Model.PSStatusValidation"
+                          class="text-danger"></span></td>
+                
+                <!-----PEOPLESOFT PO #----->
+                <td>
+                    <b><u>PeopleSoft PO #:</u></b>
+                    <input asp-for="@Model.PO.PSNumber" 
+                           class="form-control">
+                    <span asp-validation-for="@Model.PO.PSNumber"
+                          class="text-danger"></span></td>
+            </tr>
+
+        </table>
+        <input id="vendorName" 
+               name="vendorName" 
+               type="hidden" />
+
+        <hr />
+        <span class="float-right">
+            <input type="hidden" 
+                   id="SaveSubmit" 
+                   name="SaveSubmit" />
+
+            <input type="button" 
+                   value="Save" 
+                   onclick="submitNewPO()" 
+                   class="btn btn-primary" />
+
+            <a href="#" 
+               class="btn btn-warning float-right" 
+               onclick="SaveSubmit()">Save & Submit</a>
+
+            <a asp-page="/planning/cost" 
+               asp-route-poid="@DataProtector.EncryptId(DataProtectionProvider, @Model.PO.Id)" 
+               class="btn btn-primary">Cancel</a>
+        </span>
+    </form>
+</div>
+
+<script type="text/javascript">
+     // Function to update the file name field with the selected file name
+    function updateFileName() {
+        const attachmentInput = document.getElementById("attachmentInput");
+        const fileNameSpan = document.querySelector("#attachmentFileName");
+
+        if (attachmentInput.files.length > 0) {
+            fileNameSpan.textContent = attachmentInput.files[0].name;
+        } else {
+            fileNameSpan.textContent = ""; // Clear the file name if no file is selected
+        }
+    }
+
+    // Call the function when the file input changes
+    document.getElementById("attachmentInput").addEventListener("change", updateFileName);
+
+    function handleCommitmentTypeChange(initialValue = "") 
+    {
+        var commitmentTypeDropdown = document.getElementById("PO_CommitmentType");
+        var statusDropdown = document.getElementById("PO_Status");
+
+        // Get the selected value from the commitment type dropdown
+        var selectedValue = initialValue || 
+                            commitmentTypeDropdown.value;
+
+        // Get the currently selected option in the Status dropdown
+        var selectedStatus = statusDropdown.value;
+
+        // Clear all options from the status dropdown
+        statusDropdown.innerHTML = "";
+
+        if (selectedValue === "Contract") 
+        {
+            // Add the "Please select..." option with no value to the status dropdown
+            var optionSelect = document.createElement("option");
+            optionSelect.text = "Please select...";
+            statusDropdown.appendChild(optionSelect);
+
+            // Add the "Pending" option with a value of "Pending" to the status dropdown
+            var optionPending = document.createElement("option");
+            optionPending.text = "Pending";
+            optionPending.value = "Pending";
+            statusDropdown.appendChild(optionPending);
+
+            // Add the "Approved" option with a value of "Approved" to the status dropdown
+            var optionApproved = document.createElement("option");
+            optionApproved.text = "Approved";
+            optionApproved.value = "Approved";
+            statusDropdown.appendChild(optionApproved);
+
+            // Set the selected option based on the stored value or default to "Please select..."
+            statusDropdown.value = (selectedStatus === "Pending" || 
+                                    selectedStatus === "Approved") ? selectedStatus : "Please select...";
+            } 
+            else if (selectedValue === "Placeholder" || 
+                     selectedValue === "Adjustment") 
+            {
+            // Add the "N/A" option with a value of "N/A" to the status dropdown
+                var optionNA = document.createElement("option");
+                optionNA.text = "N/A";
+                optionNA.value = "N/A";
+                statusDropdown.appendChild(optionNA);
+            } 
+            else 
+            {
+            // Add the "Please select..." option with no value to the status dropdown
+            var optionSelect = document.createElement("option");
+            optionSelect.text = "Please select...";
+            statusDropdown.appendChild(optionSelect);
+
+            // Add the "Pending" option with a value of "Pending" to the status dropdown
+            var optionPending = document.createElement("option");
+            optionPending.text = "Pending";
+            optionPending.value = "Pending";
+            statusDropdown.appendChild(optionPending);
+
+            // Add the "Approved" option with a value of "Approved" to the status dropdown
+            var optionApproved = document.createElement("option");
+            optionApproved.text = "Approved";
+            optionApproved.value = "Approved";
+            statusDropdown.appendChild(optionApproved);
+
+            // Set the selected option based on the stored value
+            statusDropdown.value = selectedStatus;
+            }
+        }
+
+    // Call the function when the page loads to populate and select the correct Status option
+    window.addEventListener("load", function () 
+    {
+        var commitmentTypeDropdown = document.getElementById("PO_CommitmentType");
+        handleCommitmentTypeChange(commitmentTypeDropdown.value);
+    });
+
+    // Call the function when the Commitment Type dropdown changes to update the Status dropdown
+    document.getElementById("PO_CommitmentType").addEventListener("change", function () 
+    {
+        handleCommitmentTypeChange();
+    });
+
+
+    function showErrorAlert() 
+    {
+        document.getElementById("errorAlert").style.display = "block";
+    }
+
+    function SaveSubmit() 
+    {
+        var doit = confirm("Are you sure you want to submit for approval? You can not undo this. ");
+        if (doit) 
+        {
+            document.getElementById("SaveSubmit").value = "SendToApproval";
+            var frm = document.getElementById("poForm");
+            frm.submit();
+        }
+    }
+
+    function chgAcct() 
+    {
+        var a = document.getElementById("Account");
+        var newA = a.options[a.selectedIndex].text;
+        var bal = newA.indexOf("Bal:");
+        newA = newA.slice(0, bal - 1);
+        document.getElementById("PO_AccountString").value = newA;
+    }
+
+    function setVendorName() 
+    {
+        var v = document.getElementById("PO_VendorId");
+        var vn = v.options[v.selectedIndex].text;
+        document.getElementById("VendorName").value = vn;
+    }
+
+    function submitNewPO() 
+    {
+        var frm = document.getElementById("poForm");
+
+        setVendorName();
+        frm.submit();
+    }
+
+    function deleteThisPO() 
+    {
+        var yes = confirm("Are you sure you want to delete this PO? You can NOT undo this!");
+        if (yes) 
+        {
+            document.getElementById("deletePO").value = "DeleteThisPO";
+            frm = document.getElementById("poForm");
+            frm.submit();
+        }
+    }
+    function filterNum(el) 
+    {
+        var str = el.value;
+        str = str.replace("$", "");
+        str = str.replace("(", "-");
+        str = str.replace(")", "");
+        str = str.replace("%", "");
+        str = str.replace(",", "");
+        str = str.replace(",", "");
+        str = str.replace(",", "");
+        str = str.replace(",", "");
+        str = str.replace(",", "");
+        el.value = str;
+    }
+</script>
+
+
+@section Scripts
+    {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
