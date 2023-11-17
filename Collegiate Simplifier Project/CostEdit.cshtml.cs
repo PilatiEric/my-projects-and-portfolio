@@ -29,7 +29,7 @@ using System.Net.Mail;
 using System.Text;
 
 
-namespace SanDiego.Pages.Planning
+namespace PlaceholderName.Pages.Planning
 {
     public class CostEditModel : PageModel
     {
