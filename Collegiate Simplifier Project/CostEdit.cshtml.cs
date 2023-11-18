@@ -6,7 +6,7 @@
 *
 *
 *  This is the back-end section of a page that allows the user to edit an existing "commitment" or purchase order. Not shown are the various services
-*  and SQL queries needed to pull the data from aMicrosoft SQL Server and configure it to needed specifications.
+*  and SQL queries needed to pull the data from a Microsoft SQL Server and configure it to needed specifications.
 ***********************************************************************************************************************************************************/
 }
 
