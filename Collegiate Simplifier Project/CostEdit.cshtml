@@ -12,7 +12,7 @@
 @page "{poid?}"
 @using Microsoft.AspNetCore.DataProtection
 @using System.IO
-@using PlaceholderName.Utility;
+@using SanDiego.Utility;
 
 @inject IDataProtectionProvider DataProtectionProvider
 @model SanDiego.Pages.Planning.CostEditModel
@@ -90,7 +90,6 @@
                            class="form-control" />
                     <span asp-validation-for="@Model.ContractNumValidation"
                           class="text-danger"></span></td>
-                </td>
                 <!-----COMMITMENT TYPE----->
                 <td>
                     <b><u>Commitment Type:</u></b>
