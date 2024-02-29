@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
+using System.Threading.Tasks;
 using SanDiego.Models;
 using SanDiego.Services;
 using SanDiego.Utility;
@@ -29,7 +30,7 @@ using System.Net.Mail;
 using System.Text;
 
 
-namespace PlaceholderName.Pages.Planning
+namespace SanDiego.Pages.Planning
 {
     public class CostEditModel : PageModel
     {
@@ -50,6 +51,7 @@ namespace PlaceholderName.Pages.Planning
         #endregion
 
         #region Lists
+        //LISTS
         [BindProperty]
         public List<SelectListItem> LstStatus { get; set; }
 
@@ -58,13 +60,17 @@ namespace PlaceholderName.Pages.Planning
         #endregion
 
         #region IEnumerables
+        //IENUMERABLES
+
         [BindProperty]
         public IEnumerable<Vendor> Vendors { get; set; }
         [BindProperty]
         public IEnumerable<ProjectAccountingSummary> Accounts { get; set; }
+
         #endregion
 
         #region Input Fields
+        //INPUT FIELDS
         [BindProperty]
         public string VendorName { get; set; }
 
@@ -84,8 +90,10 @@ namespace PlaceholderName.Pages.Planning
 
 
         #region Validations
+        //VALIDATIONS
         public string ErrorMessage { get; set; }
         public string ContractNumValidation { get; set; }
+
         public string PSStatusValidation { get; set; }
         public string Mesg { get; set; }
         #endregion
@@ -96,10 +104,14 @@ namespace PlaceholderName.Pages.Planning
 
         [BindProperty]
         public ProjectShort PS { get; set; }
+
         public SiteUser Usr { get; set; }
 
         [BindProperty(SupportsGet = true)]
         public int id { get; set; }
+
+
+
         #endregion
 
 
@@ -140,6 +152,9 @@ namespace PlaceholderName.Pages.Planning
             Vendors = db.VendorsAll();
             //Usr = userServ.GetByUserName(hca.HttpContext.User.Identity.Name);
             Accounts = db.ProjectAccounts(PS.PsProjId).OrderBy(x => x.ClassDescr);
+
+
+
             StatusWas = PO.Status;
             Mesg = msg ?? msg;
 
@@ -159,7 +174,6 @@ namespace PlaceholderName.Pages.Planning
             BreadcrumbService.AddBreadcrumb("Cost", "/Planning/Cost?poid=" + poid);
             BreadcrumbService.AddBreadcrumb("Cost Edit", "/Planning/CostEdit?poid=" + poid);
             #endregion
-            
             return Page();
         }
 
@@ -167,7 +181,6 @@ namespace PlaceholderName.Pages.Planning
 
         public IActionResult OnPostAsync()
         {
-
             #region Delete Commitment
             string delete = Request.Form["deletePO"];
             if (delete == "DeleteThisPO")
@@ -176,9 +189,9 @@ namespace PlaceholderName.Pages.Planning
 
                 db2.DeletePO(poid);
 
-                return RedirectToPage("/planning/CostsLog", new { id = DataProtector.EncryptId(_dataProtectionProvider, PO.ProjectId),
-                                                                  msg = "Commitment item has been deleted."
-                                                                });
+                return RedirectToPage("/planning/CostsLog",
+                                      new{ id = DataProtector.EncryptId(_dataProtectionProvider, PO.ProjectId),
+                                           msg = "Commitment item has been deleted." });
             }
             #endregion
 
@@ -189,7 +202,8 @@ namespace PlaceholderName.Pages.Planning
                                          "Contract # is required");
             }
 
-            if (string.IsNullOrEmpty(PO.PSStatus))
+            if (
+                string.IsNullOrEmpty(PO.PSStatus))
             {
                 ModelState.AddModelError("PSStatusValidation",
                                          "PSStatus # is required");
@@ -197,6 +211,7 @@ namespace PlaceholderName.Pages.Planning
 
             if (ModelState.IsValid)
             {
+
                 try
                 {
                     #region File Upload
@@ -254,33 +269,36 @@ namespace PlaceholderName.Pages.Planning
                     {
                         if (!escalationServ.IsRoutingConfigured(PO.ProjectId))
                         {
-                            return RedirectToPage("/planning/cost", new { poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
-                                                                          msg = "Routing Configuration Not found for the Project."
-                                                                        });
+                            return RedirectToPage("/planning/cost",
+                                                  new{ poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
+                                                       msg = "Routing Configuration Not found for the Project." });
                         }
 
                         CostApprovalEscalation approver = escalationServ.GetNextApprover(PO.Id);
 
                         if (approver.ApproverId > 0)
                         {
-                            var res = escalationServ.AddCostForApproval( new CostApprovals { CostId = PO.Id,
-                                                                                             CreatedDate = DateTime.Now,
-                                                                                             ApproverId = approver.ApproverId,
-                                                                                             EscalationOrder = approver.EscalationOrder,
-                                                                                             Remarks = "",
-                                                                                             Status = "Pending"
-                                                                                           });
+                            var res = escalationServ.AddCostForApproval(
+                                        new CostApprovals
+                                        {
+                                            CostId = PO.Id,
+                                            CreatedDate = DateTime.Now,
+                                            ApproverId = approver.ApproverId,
+                                            EscalationOrder = approver.EscalationOrder,
+                                            Remarks = "",
+                                            Status = "Pending"
+                                        }
+                                );
                             if (res > 0)
                             {
                                 var code = escalationServ.GenerateCostApprovalToken(res.ToString());
                                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                                var callbackUrl = Url.Page( "/Planning/POCostMailApproval",
-                                                            pageHandler: null,
-                                                            values: new { CostId = DataProtector.EncryptId(_dataProtectionProvider, PO.Id), 
-                                                                          approvalId = @DataProtector.EncryptId(_dataProtectionProvider, res), 
-                                                                          code 
-                                                                        },
-                                                            protocol: Request.Scheme);
+                                var callbackUrl = Url.Page(
+                                    "/Planning/POCostMailApproval",
+                                    pageHandler: null,
+                                    values: new { CostId = DataProtector.EncryptId(_dataProtectionProvider, PO.Id), 
+                                                  approvalId = @DataProtector.EncryptId(_dataProtectionProvider, res), code },
+                                    protocol: Request.Scheme);
                                 escalationServ.SendMail(escalationServ.GetById(res), callbackUrl);
                             }
                         }
@@ -314,11 +332,11 @@ namespace PlaceholderName.Pages.Planning
 
                     mail.SendEmailAsync(mm); // uncomment in production
                 }
-                return RedirectToPage("/planning/Cost", new { poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
-                                                              msg = "Cost item has been saved."
-                                                            });
+                return RedirectToPage("/planning/Cost",
+                                      new{ poid = DataProtector.EncryptId(_dataProtectionProvider, PO.Id),
+                                           msg = "Cost item has been saved." });
             }
-            
+
             return Page();
         }
     }
