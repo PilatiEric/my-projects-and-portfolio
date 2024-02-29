@@ -1,0 +1,199 @@
+@{
+/***************************************************************************************************************************************************
+*  New Project Page
+*
+*  This page invoved the use of a cascading dropdown menu to create a new project in which new commitments, invoices, etc. could be assigned to.
+*  Depending on the selection made in the campus dropdown menu, the building menu would be populated with different selections.
+*  This required the use of SQL queries that pulled from two seperate databases in order two fully function - one hosted campus information and the other buildings.
+*
+*  This is the front-end part of a page that allows the user to choose which campus and building on that campus that would be the focus of the project.
+****************************************************************************************************************************************************/
+}
+
+@page
+@model SanDiego.Pages.Planning.SBSNewModel
+@{
+    ViewData["Title"] = "SBSNew";
+}
+<div class="col-xl-8 
+            mx-xl-auto">
+    <h1>Create New Project</h1>
+
+    <hr />
+    <form method="post" 
+          id="createForm">
+        <table class="table">
+            <tr>
+                <td style="width: 35%">
+                    <!-- Your existing College/Site dropdown -->
+                    College/Site:
+                    <select asp-for="@Model.SelectedCollege" 
+                            class="form-control" 
+                            id="campusList">
+                        <option value="0">Select College...</option>
+                        @foreach (var row in Model.Colleges)
+                        {
+                            <option value="@(row.Id + "-" + row.CampusCode)">@row.CampusAbrev</option>
+                        }
+                    </select></td>
+
+                <td>
+                    Project Title:
+                    <input asp-for="@Model.ProjectTitle" 
+                           class="form-control" 
+                           placeholder="Please Enter Project Title" /></td>
+            </tr>
+
+            <tr>
+                <td style="width: 35%">
+                    <!-- Building dropdown (populated dynamically) -->
+                    Building:
+                    <select asp-for="@Model.SelectedBuilding" 
+                            class="form-control" 
+                            id="buildingsList" 
+                            required>
+                        <option value="0">Select a building...</option>
+                    </select></td>
+            </tr>
+
+            <tr>
+                <td colspan="2">
+                    <input type="button" 
+                           value="Create Project" 
+                           onclick="createProject()" 
+                           class="btn btn-primary" />
+                    <a asp-page="/planning/lrcp" 
+                       class="btn btn-secondary float-right">Cancel</a>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+
+<div class="alert-warning 
+            rounded 
+            p-3
+            w-50" 
+     style="display:none;" 
+     id="errorMsg"></div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $("#campusList").change
+        (function () 
+        {
+            var campus = $("#campusList").val();
+            campus = campus.substring(5, 99);
+            showBuildings(campus); // Make AJAX call to fetch buildings
+        });
+
+    function showBuildings(campus) 
+    {
+        $.ajax
+        ({
+            url: "/Buildings/BuildingsListJson?cid=" + campus,
+            type: 'GET',
+            //dataType: 'json',
+            success: function (data) 
+            {
+                populateBuildingDropdown(data); // Populate Building dropdown
+            },
+            error: function (request, error) 
+            {
+                alert("Request: " + JSON.stringify(request));
+            }
+        });
+    }
+
+    function populateBuildingDropdown(buildings) 
+    {
+        var dropdown = $("#buildingsList");
+        dropdown.empty(); // Clear existing options
+
+        dropdown.append($("<option />").val("0").text("Select Building..."));
+        $.each
+            (buildings, function (index, building) 
+            {
+                // Concatenate BuildingNum and Name to create option text
+                var optionText = building.buildingNum + "-" + building.name;
+                dropdown.append($("<option />").val(building.uniqueKey).text(optionText));
+            });
+
+        dropdown.append($("<option />").val("Various").text("Various"));
+        dropdown.append($("<option />").val("Other").text("Other"));
+    }
+
+
+    function showAjax(campus) 
+    {
+        $.ajax
+        ({
+            //url: "@Url./*Page*//*("/Index")*/?handler=CountriesFilter",
+            url: "/Buildings/BuildingsList?cid=" + campus,
+            method: "GET",
+            //data: { continent: continent },
+            //contentType: dataType,
+            data: data,
+            success: function (data) 
+            {
+                alert("blah")
+                //TODO
+            }
+        })
+    };
+
+
+    function showCustomer(campus) 
+    {
+        var xhttp;
+        if (campus == "") 
+        {
+            document.getElementById("txtHint").innerHTML = "";
+            return;
+        }
+        xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () 
+        {
+            if (this.readyState == 4 && this.status == 200) 
+            {
+                document.getElementById("txtHint").innerHTML = this.responseText;
+            }
+        };
+        xhttp.open("GET", "/Buildings/BuildingsList?cid=" + campus, true);
+        xhttp.send();
+    }
+    </script>
+
+
+<script type="text/javascript">
+    function createProject() 
+    {
+        var isGood = true;
+        var msg = "";
+        if (document.getElementById("campusList").value == "0") 
+        {
+            msg = "Please Select a College. ";
+            isGood = false;
+        }
+
+        if (document.getElementById("ProjectTitle").value == "Please Enter Project Title") 
+        {
+            msg += "Please enter a project title. ";
+            isGood = false;
+        }
+
+        if (isGood) 
+        {
+            var frm = document.getElementById("createForm");
+            frm.submit();
+        }
+
+        else 
+        {
+            var erDiv = document.getElementById("errorMsg");
+            erDiv.innerText = msg;
+            erDiv.style.display = 'block';
+        }
+    }
+</script>
+
