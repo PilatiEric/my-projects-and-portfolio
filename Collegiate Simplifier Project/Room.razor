@@ -1,0 +1,183 @@
+﻿@page "/room"
+@using SanDiegoBlazor.Models
+@using SanDiegoBlazor.Services
+@using System.Globalization
+@inject IConfiguration Configuration
+
+<h3>Room</h3>
+
+<SfSchedule TValue="AppointmentData"
+            ShowWeekend="true"
+            ShowHeaderBar="false"
+            CssClass="schedule-date-header-template"
+            Height="650px"
+            StartHour="06:00"
+            EndHour="23:00"
+            Readonly="true">
+    <ScheduleEventSettings TValue="AppointmentData"
+                           DataSource="@scheduleList"
+                           EnableTooltip="true">
+        <TooltipTemplate>
+            <div class="tooltip-wrap">
+                <div>@((context as AppointmentData).Subject)</div>
+                <div>@((context as AppointmentData).Location)</div>
+                <div>(@((context as AppointmentData).StartTime.ToString("hh:mm tt")) -
+                      @((context as AppointmentData).EndTime.ToString("hh:mm tt")))</div>
+            </div>
+        </TooltipTemplate>
+    </ScheduleEventSettings>
+    <ScheduleTimeScale Enable="true" 
+                       Interval="60"
+                       SlotCount="2">
+        <MinorSlotTemplate>
+            <div style="text-align: right;
+                        margin-top: 30px;
+                        margin-bottom: 30px"></div>
+        </MinorSlotTemplate>
+    </ScheduleTimeScale>
+    <ScheduleTemplates>
+        <DateHeaderTemplate>
+            <div class="date-text">@getDateHeaderText((context as TemplateContext).Date)</div>
+        </DateHeaderTemplate>
+    </ScheduleTemplates>
+    <ScheduleViews>
+        <ScheduleView Option="View.Day"
+                      AllowVirtualScrolling="true"
+                      EnableVirtualMask="true"></ScheduleView>
+        <ScheduleView Option="View.Week"
+                      ShowWeekend="true"
+                      AllowVirtualScrolling="true"
+                      EnableVirtualMask="true"></ScheduleView>
+    </ScheduleViews>
+</SfSchedule>
+
+@code {
+    /*For more information on setting up Scheduler, go here: https://blazor.syncfusion.com/documentation/scheduler/getting-started*/
+    public class AppointmentData
+    {
+        public int Id { get; set; }
+        public string Subject { get; set; }
+        public string Location { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Description { get; set; }
+        public string RecurrenceRule { get; set; }
+
+        public AppointmentData()
+        {
+            Description = "";
+            RecurrenceRule = "";
+        }
+    }
+
+    #region Day Schedules
+    public IEnumerable<ClassSchedule>? monSchedule { get; set; }
+    public IEnumerable<ClassSchedule>? tueSchedule { get; set; }
+    public IEnumerable<ClassSchedule>? wedSchedule { get; set; }
+    public IEnumerable<ClassSchedule>? thuSchedule { get; set; }
+    public IEnumerable<ClassSchedule>? friSchedule { get; set; }
+    public IEnumerable<ClassSchedule>? satSchedule { get; set; }
+    #endregion
+
+    private readonly IConfiguration _configuration;
+    private DataAccessService dataServ;
+
+    List<AppointmentData> scheduleList = new List<AppointmentData>();
+
+    public Room (DataAccessService _dataServ)
+    {
+        dataServ = _dataServ;
+
+        monSchedule = Enumerable.Empty<ClassSchedule>();
+        tueSchedule = Enumerable.Empty<ClassSchedule>();
+        wedSchedule = Enumerable.Empty<ClassSchedule>();
+        thuSchedule = Enumerable.Empty<ClassSchedule>();
+        friSchedule = Enumerable.Empty<ClassSchedule>();
+        satSchedule = Enumerable.Empty<ClassSchedule>();
+    }
+
+    public Room(){}
+
+    public static string getDateHeaderText(DateTime date)
+    {
+        return date.ToString("ddd", CultureInfo.CurrentCulture);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        dataServ = new DataAccessService(Configuration);
+        await base.OnInitializedAsync();
+
+        monSchedule = dataServ.MonClassSchedule("2023/SP", 
+                                                "MESA", 
+                                                "072_15", 
+                                                "116");
+        tueSchedule = dataServ.TueClassSchedule("2023/SP",
+                                                "MESA",
+                                                "072_15",
+                                                "116");
+        wedSchedule = dataServ.WedClassSchedule("2023/SP",
+                                                "MESA",
+                                                "072_15",
+                                                "116");
+        thuSchedule = dataServ.ThuClassSchedule("2023/SP",
+                                                "MESA",
+                                                "072_15",
+                                                "116");
+        friSchedule = dataServ.FriClassSchedule("2023/SP",
+                                                "MESA",
+                                                "072_15",
+                                                "116");
+        satSchedule = dataServ.SatClassSchedule("2023/SP",
+                                                "MESA",
+                                                "072_15",
+                                                "116");
+
+        
+        var daysOfWeek = new Dictionary<string, IEnumerable<ClassSchedule>>
+        {
+            {"Mon", monSchedule},
+            {"Tue", tueSchedule},
+            {"Wed", wedSchedule},
+            {"Thu", thuSchedule},
+            {"Fri", friSchedule},
+            {"Sat", satSchedule}
+        };
+
+        //kvp stands for "key value pair"
+        foreach (var kvp in daysOfWeek)
+        {
+            var day = kvp.Key;
+            var schedule = kvp.Value;
+
+            for (int i = 0; i < schedule.Count(); ++i)
+            {
+                var classSchedule = schedule.ElementAt(i);
+
+                scheduleList.Add(new AppointmentData{ //Remember, these variable names are not chosen randomly
+                                                      //They are recognized names by the Scheduler to place information in the correct place and format
+                                                      //Do NOT change how they are spelled or capitalized
+                                                      Id = (i + 1),
+                                                      Subject = $"{classSchedule.Title}",
+                                                      Location = $"{classSchedule.Location}",
+                                                      //The date on StatTime and EndTime doesn't matter as long as it has already occured
+                                                      //This is just where this event starts repeating from
+                                                      StartTime = new DateTime(2024,                            //YEAR
+                                                                                  3,                            //MONTH
+                                                                                  11,                           //DAY
+                                                                                  classSchedule.StartHour,      //HOUR
+                                                                                  classSchedule.StartMinute,    //MINUTE
+                                                                                  0),                           //SECOND
+                                                      EndTime = new DateTime(2024, 
+                                                                             3, 
+                                                                             11, 
+                                                                             classSchedule.EndHour, 
+                                                                             classSchedule.EndMinute, 
+                                                                             0),
+                                                      RecurrenceRule = $"FREQ=WEEKLY; INTERVAL=1; BYDAY={day.Substring(0, 2).ToUpper()}"
+                                                    });
+            }
+        }
+    }
+}
+
