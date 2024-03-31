@@ -18,6 +18,7 @@
         - Core
       - Bootstrap
       - Dapper
+      - jQuery UI
       - Visual Studio
 - [X] Completion of v1.0
 - [ ] Integration of Blazor components **(In Progress)**
