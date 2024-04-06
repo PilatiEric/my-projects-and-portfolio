@@ -37,7 +37,7 @@
 - [X] Decrypt and Decode JSON
 - [ ] Parse information into individual columns in preparation for insertion to SQL Database
 
-#### 3. [CS 1110 Final Project](https://github.com/PilatiEric/my-projects-and-portfolio/tree/main/CS_1110_Final_Project) (Completed)
+#### 3. [CS 1110 - Final Project](https://github.com/PilatiEric/my-projects-and-portfolio/tree/main/CS_1110_Final_Project) (Completed)
    - The objective was to use all skills learned throughout the semester in conjunction with a python-based library called Gamebox to create an original game.
    - **Primary Languages, Libraries, and IDE Used**
       - Python
