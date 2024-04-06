@@ -45,7 +45,7 @@
       - Pycharm
 
 #### 4) [PSYC 4500 - Final Project](https://github.com/PilatiEric/my-projects-and-portfolio/blob/main/PSYC_4500_Final_Project.ipynb) (Completed)
-   - The objective of this project was to take data gathered from an ongoing project throughout the semester and the data combined with code learned to analyze and then confirm or deny a hypothesis of the student's choosing.
+   - The objective of this project was to take data gathered from an ongoing project throughout the semester and use the data combined with code learned to analyze and then confirm or deny a hypothesis of the student's choosing.
    - **Primary Languages, Libraries, and IDE Used**
       - Python
       - Numpy
