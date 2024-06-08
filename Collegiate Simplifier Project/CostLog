@@ -1,0 +1,317 @@
+/***********************************************************************************************************************
+* CostLog.razor
+*
+* A blazor page using SyncFusion components to display a table summarizing various commitments created
+************************************************************************************************************************/
+
+@page "/CostsLog"
+@page "/CostsLog/{id}/{srt?}/{msg?}"
+
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.Navigations
+@using TestBlazor.Services
+@using TestBlazor.Components.Models
+@using TestBlazor.Components.Pages
+@using TestBlazor.Utility
+@using Microsoft.AspNetCore.DataProtection
+@using System.IO
+@using System.Text.Json
+
+@inject IDataProtectionProvider DataProtectionProvider
+@inject ProjectService projectService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+
+<SfGrid DataSource="@POs"
+        AllowExcelExport="true"
+        AllowFiltering="true"
+        AllowGrouping="true"
+        AllowPaging="true"
+        AllowPdfExport="true"
+        AllowReordering="true"
+        AllowSorting="true"
+        Toolbar="@(new List<string>() { "ExcelExport", "CsvExport", "PdfExport", "Search" })">
+    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.CheckBox"></GridFilterSettings>
+    <GridPageSettings PageSize="int.MaxValue"
+                      PageSizes="true"></GridPageSettings>
+    <GridColumns>
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!-------------------------------------------------------------------- CONTRACT # ----------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            Field="@nameof(PO.ContractNumber)"
+                                            Width="150">
+            <HeaderTemplate>Contract #</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                    string encryptedId = DataProtector.EncryptId(DataProtectionProvider, po.Id);
+                    string displayText = po.ContractNumber ?? "--";
+                    string link = $"https://sandiego.helixsystems.com/Planning/cost?poid={encryptedId}";
+                }
+                <a href="@link" target="_blank">@displayText</a>
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------ REV -------------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            Field="@nameof(PO.PurchaseOrderRevision)"
+                                            Width="150">
+            <HeaderTemplate>Rev</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @(po.PurchaseOrderRevision ?? "--")
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!----------------------------------------------------------------------- STATUS ------------------------------------------------------------------------>
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowSorting="false"
+                                            Field="@nameof(PO.Status)"
+                                            Width="150">
+            <HeaderTemplate>Status</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @(po.Status ?? "--")
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!----------------------------------------------------------------------- VENDOR ------------------------------------------------------------------------>
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowSorting="false"
+                                            Field="@nameof(PO.VendorName)"
+                                            Width="150">
+            <HeaderTemplate>Vendor</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @(po.VendorName ?? "--")
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!-------------------------------------------------------------------- REQUEST DATE --------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            Field="@nameof(PO.ProcessDate)"
+                                            Width="150">
+            <HeaderTemplate>Request Date</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @if (po?.ProcessDate != null)
+                {
+                    @(po.ProcessDate.Value.ToString("MM/dd/yyyy"))
+                }
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!----------------------------------------------------------------------- PS PO # ----------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            Field="@nameof(PO.PSNumber)"
+                                            Width="150">
+            <HeaderTemplate>PS PO #</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @(po.PSNumber ?? "--")
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!----------------------------------------------------------------- MATERIALS OR SERVICE ---------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            AllowSorting="false"
+                                            Field="@nameof(PO.ProjectId)"
+                                            Width="150">
+            <HeaderTemplate>Materials or Service</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @(!string.IsNullOrEmpty($"{po.VendorName}{po.ProjectId}") ? ($"{po.VendorName} - {po.ProjectId}") : "--")
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------- COST ------------------------------------------------------------------------>
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            Field="@nameof(PO.TotalPrice)"
+                                            Width="150">
+            <HeaderTemplate>Cost</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                }
+                @(po.TotalPrice.GetValueOrDefault().ToString("c2"))
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------- PDF ------------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            AllowReordering="false"
+                                            AllowSorting="false"
+                                            Field="@nameof(PO.FileName)"
+                                            Width="150">
+            <HeaderTemplate>PDF</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                    string pdfLink = Navigation.ToAbsoluteUri($"ViewPdf?documentId={po.Id}&type=PoCost").ToString();
+                }
+                @if (!string.IsNullOrEmpty(po.FileName))
+                {
+                    <a href="@pdfLink" target="_blank" title="@System.IO.Path.GetFileName(po.FileName)">
+                        <Icon Name="IconName.FileEarmarkPdf"/>
+                    </a>
+                }
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------- VIEW ------------------------------------------------------------------------>
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            AllowReordering="false"
+                                            AllowSorting="false"
+                                            Field="@nameof(PO.AccountString)"
+                                            Width="150">
+            <HeaderTemplate>View Details</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                    string encryptedId = DataProtector.EncryptId(DataProtectionProvider, po.Id);
+                    string link = $"https://sandiego.helixsystems.com/Planning/cost?poid={encryptedId}";
+                }
+                <a href="@link" target="_blank">View</a>
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------- EDIT ------------------------------------------------------------------------>
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                            AllowGrouping="false"
+                                            AllowReordering="false"
+                                            AllowSorting="false"
+                                            Field="@nameof(PO.AccountString)"
+                                            Width="150">
+            <HeaderTemplate>Edit Details</HeaderTemplate>
+            <Template>
+                @{
+                    var po = context as Cost;
+                    string encryptedId = DataProtector.EncryptId(DataProtectionProvider, po.Id);
+                    string link = $"https://sandiego.helixsystems.com/Planning/costedit?poid={encryptedId}";
+                }
+                <a href="@link" target="_blank">Edit</a>
+            </Template>
+        </Syncfusion.Blazor.Grids.GridColumn>
+    </GridColumns>
+</SfGrid>
+<br />
+<br />
+
+
+
+@code {
+    
+    [Parameter]
+    public string srt { get; set; }
+
+    [Parameter]
+    public string id { get; set; }
+
+    [Parameter]
+    public string msg { get; set; } = null;
+    
+
+
+    public IEnumerable<Cost> POs;
+    public Cost PO;
+    IList<Cost> SelectedCommitment;
+    private SfGrid<Project> grid;
+
+    string excel = "excel";
+    string pdf = "pdf";
+    string printData = "printData";
+
+    public IEnumerable<Project> Projects { get; set; }
+
+
+
+
+
+     protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        int decrpId = DataProtector.DecryptId(DataProtectionProvider, id);
+
+        POs = projectService.POsByProject(decrpId, srt);
+
+        SelectedCommitment = new List<Cost>() { POs.FirstOrDefault() };
+
+        //FOR EXPORTING
+        //GridData = Project.GetAllRecords();
+    }
+
+}
