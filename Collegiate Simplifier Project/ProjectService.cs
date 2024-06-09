@@ -1,7 +1,7 @@
 /*******************************************************************************************************************
 * ProjectService.cs Sample
 *
-* These are a few examples of queries written to help pull information from out SQL Server
+* These are a few examples of queries written to help pull information from our SQL Server
 ********************************************************************************************************************/
 
 
