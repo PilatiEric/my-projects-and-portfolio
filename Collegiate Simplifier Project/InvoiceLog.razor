@@ -1,0 +1,1035 @@
+﻿@page "/InvoiceLog"
+@page "/InvoiceLog/{id?}/{msg?}/{srt?}"
+
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Navigations
+@using TestBlazor.Services
+@using TestBlazor.Components.Models
+@using TestBlazor.Components.Pages
+@using TestBlazor.Utility
+@using Microsoft.AspNetCore.DataProtection
+@using System.IO
+@using System.Text.Json
+
+@inject IDataProtectionProvider DataProtectionProvider
+@inject ProjectService projectService
+@inject AccountingService accountingService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+
+<SfBreadcrumb>
+    <BreadcrumbItems>
+        <BreadcrumbItem Text="Home"
+                        Url="https://sandiego.helixsystems.com"/>
+        <BreadcrumbItem Text="Projects List"
+                        Url="https://sandiego.helixsystems.com/ut/projectslist"/>
+        <BreadcrumbItem Text="Invoice Log"/>
+    </BreadcrumbItems>
+</SfBreadcrumb>
+<br />
+<br />
+
+
+<h2>Invoice Log</h2>
+<br />
+<br />
+
+@if (showAll == false)
+{
+    <h3>@Project.ProjectTitle</h3>
+    <div style="float:right">
+        <SfButton IsPrimary="true"
+                  OnClick="NavigateToAllInvoices">All Invoices</SfButton>
+        <SfButton IsPrimary="true"
+                  OnClick="NavigateToAllCommitments">All Commitments</SfButton>
+        <SfButton IsPrimary="true"
+                  OnClick="NavigateToVendorsTools">Vendors Tools</SfButton>
+    </div>
+}
+else
+{
+    <div style="float:right">
+        <SfButton IsPrimary="true"
+                  OnClick="NavigateToAllCommitments">All Commitments</SfButton>
+        <SfButton IsPrimary="true"
+                  OnClick="NavigateToVendorsTools">Vendors Tools</SfButton>
+    </div>
+}
+
+
+<br />
+<br />
+
+
+<SfTab>
+    <TabItems>
+<!------------------------------------------------------------------vvvvvvvvvvvvvvvvv-------------------------------------------------------------------->
+<!------------------------------------------------------------------ INVOICE LOG TAB -------------------------------------------------------------------->
+<!------------------------------------------------------------------^^^^^^^^^^^^^^^^^-------------------------------------------------------------------->
+        <TabItem>
+            <ChildContent>
+                <TabHeader Text="Invoice Logs"></TabHeader>
+            </ChildContent>
+            <ContentTemplate>
+                <!--TODO: ADD VOUCHERS TAB AND MAKE SURE WHAT SHOWS IN VOUCHER TAB CHANGES WITH WHICH ROW IN THE INVOICE LOG TAB IS CLICKED-->
+                <SfGrid DataSource="@Invs"
+                        ID="InvLogGrid"
+                        @ref="invGrid"
+                        AllowExcelExport="true"
+                        AllowFiltering="true"
+                        AllowGrouping="true"
+                        AllowPaging="true"
+                        AllowPdfExport="true"
+                        AllowReordering="true"
+                        AllowResizing="true"
+                        AllowSorting="true"
+                        Toolbar="@(new List<string>() { "ExcelExport", "PdfExport", "Search" })">
+                    <GridEvents OnToolbarClick="OnToolbarClick"
+                                TValue="Invoices"></GridEvents>
+                    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.CheckBox"></GridFilterSettings>
+                    <GridGroupSettings Columns="@InitialGroupingInvoiceTable"></GridGroupSettings>
+                    @if (showAll == false)
+                    {
+
+                        <GridPageSettings PageSize="int.MaxValue"
+                                          PageSizes="true"></GridPageSettings>
+                    }
+                    else
+                    {
+                        <GridPageSettings PageSize="100"
+                                          PageSizes="true"></GridPageSettings>
+                    }
+                    <GridColumns>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- PROJECT TITLE ----------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(Invoice.ProjectTitle)"
+                                                            Width="150">
+                            <HeaderTemplate>Project Title</HeaderTemplate>
+                            <Template>
+                                @if (showAll == true)
+                                {
+                                    var inv = context as Invoices;
+                                    string encryptedId = DataProtector.EncryptId(DataProtectionProvider, inv.ProjectId);
+                                    string displayText = inv.ProjectTitle ?? "--";
+                                    string link = "";
+                                    if (System.Diagnostics.Debugger.IsAttached)
+                                    {
+                                        link = $"../InvoiceLog/{encryptedId}";
+                                    }
+                                    else
+                                    {
+                                        link = $"https://sandiego.helixsystems.com/ut/InvoiceLog/{encryptedId}";
+                                    }
+
+                                    <a href="@link" target="_blank">@displayText</a>
+                                }
+                                else
+                                {
+                                    var inv = context as Invoices;
+                                    @(inv.ProjectTitle ?? "--")
+                                }
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- CONTRACT # ----------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(Invoice.ContractNumber)"
+                                                            Width="150">
+                            <HeaderTemplate>Contract #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.ContractNumber ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- INVOICE # ----------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Invoice.InvoiceNumber)"
+                                                            Width="150">
+                            <HeaderTemplate>Invoice #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.InvoiceNumber ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- VENDOR ------------------------------------------------------------------------>
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowSorting="false"
+                                                            Field="@nameof(Invoice.VendorName)"
+                                                            Width="150">
+                            <HeaderTemplate>Vendor</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.VendorName ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!-------------------------------------------------------------------- COMMITMENT # --------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Invoice.PurchaseOrderNumber)"
+                                                            Width="150">
+                            <HeaderTemplate>Commitment #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.PurchaseOrderNumber ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- CONTRACT # ---------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Invoice.ContractNumber)"
+                                                            Width="150">
+                            <HeaderTemplate>Contract #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.ContractNumber ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- STATUS ------------------------------------------------------------------------>
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowResizing="false"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Invoice.Status)"
+                                                            Width="150">
+                            <HeaderTemplate>Status</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.Status ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- DESCRIPTION --------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Invoices.Description)"
+                                                            Width="150">
+                            <HeaderTemplate>Description</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.Description ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!-------------------------------------------------------------------- REQUEST DATE --------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="true"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Invoice.IssueDate)"
+                                                            Width="150">
+                            <HeaderTemplate>Request Date</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @if (inv?.IssueDate != null)
+                                {
+                                    @(inv.IssueDate.Value.ToString("MM/dd/yyyy"))
+                                }
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!---------------------------------------------------------------------- PAID DATE ---------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Invoice.PaidDate)"
+                                                            Width="150">
+                            <HeaderTemplate>Paid Date</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @if (inv?.PaidDate != null)
+                                {
+                                    @(inv.PaidDate.Value.ToString("MM/dd/yyyy"))
+                                }
+                                else
+                                {
+                                    @("--")
+                                }
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!-------------------------------------------------------------------- INVOICE TOTAL -------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Invoices.InvoiceTotal)"
+                                                            Width="150">
+                            <HeaderTemplate>Total</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                }
+                                @(inv.InvoiceTotal.Value.ToString("c2") ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------ VIEW ------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowReordering="false"
+                                                            AllowResizing="false"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Invoice.Id)"
+                                                            Width="150">
+                            <HeaderTemplate>View Details</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var inv = context as Invoices;
+                                    string encryptedId = DataProtector.EncryptId(DataProtectionProvider, inv.Id);
+                                    string link = $"https://sandiego.helixsystems.com/Planning/invoice?Invid={encryptedId}";
+                                }
+                                <a href="@link" target="_blank">View</a>
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+                    </GridColumns>
+                </SfGrid>
+            </ContentTemplate>
+        </TabItem>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--------------------------------------------------------------------vvvvvvvvvvvvvv--------------------------------------------------------------------->
+<!-------------------------------------------------------------------- VOUCHERS TAB --------------------------------------------------------------------->
+<!--------------------------------------------------------------------^^^^^^^^^^^^^^--------------------------------------------------------------------->
+        <TabItem>
+            <ChildContent>
+                <TabHeader Text="Voucher"></TabHeader>
+            </ChildContent>
+            <ContentTemplate>
+                <SfGrid DataSource="@Trans"
+                        ID="VouchersGrid"
+                        @ref="voucherGrid"
+                        AllowExcelExport="true"
+                        AllowFiltering="true"
+                        AllowGrouping="true"
+                        AllowPaging="true"
+                        AllowPdfExport="true"
+                        AllowReordering="true"
+                        AllowResizing="true"
+                        AllowSorting="true"
+                        Toolbar="@(new List<string>() { "ExcelExport", "CsvExport", "PdfExport", "Search" })">
+                    <GridEvents ExcelQueryCellInfoEvent="ExcelQueryCellInfoHandler"
+                                OnToolbarClick="OnToolbarClick"
+                                PdfQueryCellInfoEvent="PdfQueryCellInfoHandler"
+                                TValue="Transaction"></GridEvents>
+                    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.CheckBox"></GridFilterSettings>
+                    <GridGroupSettings Columns="@InitialGrouping"></GridGroupSettings>
+                    @if (showAll == false)
+                    {
+                        <GridPageSettings PageSize="int.MaxValue"
+                                          PageSizes="true"></GridPageSettings>
+                    }
+                    else
+                    {
+                        <GridPageSettings PageSize="100"
+                                          PageSizes="true"></GridPageSettings>
+                    }
+
+                    <GridColumns>
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!-------------------------------------------------------------------- COMMITMENT # --------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowResizing="false"
+                                                            Field="@nameof(Transaction.PONo)">
+                            <HeaderTemplate>Commitment #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.PONo ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- CONTRACT # ---------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowResizing="false"
+                                                            Field="@nameof(Transaction.ContractNumber)">
+                            <HeaderTemplate>Contract #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.ContractNumber ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------ NAME ------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowSorting="false"
+                                                            Field="@nameof(Transaction.Name)">
+                            <HeaderTemplate>Name</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.Name ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- DESCRIPTION --------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowSorting="false"
+                                                            Field="@nameof(Transaction.LongDescr)">
+                            <HeaderTemplate>Description</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                    var modifiedDescr = ReplaceFirstTwoSpaces(tran.LongDescr);
+                                }
+                                @(modifiedDescr ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- INVOICE ----------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowResizing="false"
+                                                            Field="@nameof(Transaction.Invoice)">
+                            <HeaderTemplate>Invoice</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.Invoice ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- VOUCHER ----------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Transaction.Voucher)">
+                            <HeaderTemplate>Voucher</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.Voucher ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- CHECK # ----------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Transaction.ChkNo)">
+                            <HeaderTemplate>Check #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.ChkNo ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!--------------------------------------------------------------------- POSTED DATE --------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Transaction.Posted)">
+                            <HeaderTemplate>Posted Date</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+
+                                @if (tran?.Posted != null)
+                                {
+                                    @(tran.Posted.ToString("MM/dd/yyyy"))
+                                }
+                                else
+                                {
+                                    @("--")
+                                }
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------ PROG ------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Transaction.Prog)">
+                            <HeaderTemplate>Prog</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.Prog ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- REF # ------------------------------------------------------------------------->
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Transaction.RefNo)">
+                            <HeaderTemplate>Ref #</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.RefNo ?? "--")
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+
+
+
+
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+    <!----------------------------------------------------------------------- EXPEND ------------------------------------------------------------------------>
+    <!------------------------------------------------------------------------------------------------------------------------------------------------------->
+                        <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                            AllowGrouping="false"
+                                                            AllowResizing="false"
+                                                            Field="@nameof(Transaction.Expend)">
+                            <HeaderTemplate>Expend</HeaderTemplate>
+                            <Template>
+                                @{
+                                    var tran = context as Transaction;
+                                }
+                                @(tran.Expend.ToString("c2"))
+                            </Template>
+                        </Syncfusion.Blazor.Grids.GridColumn>
+                    </GridColumns>
+                </SfGrid>
+            </ContentTemplate>
+        </TabItem>
+    </TabItems>
+</SfTab>
+<br />
+<br />
+
+
+
+@code {
+
+    [Parameter]
+    public string srt { get; set; }
+
+    [Parameter]
+    public string id { get; set; }
+
+    [Parameter]
+    public string msg { get; set; } = null;
+
+
+
+    public IEnumerable<Invoices> Invs { get; set; }
+    public IEnumerable<Project> Projects { get; set; }
+    public IEnumerable<Transaction> Trans { get; set; }
+    public Invoices Invoice;
+    public Transaction Transaction;
+    public ProjectShort Project { get; set; }
+    public Project projectTitle { get; set; }
+    IList<Invoices> SelectedInvoice;
+    IList<Transaction> SelectedTransaction;
+    private SfGrid<Invoices> invGrid;
+    private SfGrid<Transaction> voucherGrid;
+    private bool showAll = false;
+
+    string excel = "excel";
+    string pdf = "pdf";
+    string printData = "printData";
+
+
+    public string[] InitialGrouping = (new string[] { "Invoice" });
+    public string[] InitialGroupingInvoiceTable = (new string[] { "ProjectTitle", "ContractNumber" });
+
+
+
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        int decrpId;
+
+        if (id == null)
+        {
+            Invs = projectService.GetAllInvoices("date");
+
+            Trans = accountingService.GetAllProjectVouchers();
+            showAll = true;
+        }
+        else
+        {
+            try
+            {
+                decrpId = DataProtector.DecryptId(DataProtectionProvider, id);
+
+
+                Invs = projectService.InvoicesAllWithTitle(decrpId, "date");
+                Project = projectService.ProjectShort(decrpId);
+                Trans = accountingService.GetProjectVouchers(Project.PsProjId);
+
+                SelectedTransaction = new List<Transaction>() { Trans.FirstOrDefault() };
+            }
+            catch(Exception ex)
+            {
+                Navigation.NavigateTo($"https://sandiego.helixsystems.com/ut/InvoiceLog");
+            }
+        }
+
+        SelectedInvoice = new List<Invoices>() { Invs.FirstOrDefault() };
+
+        //FOR EXPORTING
+        //GridData = Project.GetAllRecords();
+    }
+
+
+    private void NavigateToAllInvoices()
+    {
+        string url;
+
+        @if (System.Diagnostics.Debugger.IsAttached)
+        {
+            url = $"../InvoiceLog";
+        }
+        else
+        {
+            url = $"https://sandiego.helixsystems.com/ut/InvoiceLog";
+        }
+        Navigation.NavigateTo(url);
+    }
+
+
+    private void NavigateToAllCommitments()
+    {
+        string url;
+
+        @if (System.Diagnostics.Debugger.IsAttached)
+        {
+            url = $"../CostsLog";
+        }
+        else
+        {
+            url = $"https://sandiego.helixsystems.com/ut/CostsLog";
+        }
+        Navigation.NavigateTo(url);
+    }
+
+
+    private void NavigateToVendorsTools()
+    {
+        var url = $"https://sandiego.helixsystems.com/planning/vendortools";
+        Navigation.NavigateTo(url);
+    }
+
+
+
+    public string ReplaceFirstTwoSpaces(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return input;
+        }
+
+        int firstSpaceIndex = input.IndexOf(' ');
+        if (firstSpaceIndex == -1)
+        {
+            return input;
+        }
+
+        int secondSpaceIndex = input.IndexOf(' ', firstSpaceIndex + 1);
+        if (secondSpaceIndex == -1)
+        {
+            return input.Substring(0, firstSpaceIndex) + " - " + input.Substring(firstSpaceIndex + 1);
+        }
+
+        return input.Substring(0, firstSpaceIndex) + " - " +
+               input.Substring(firstSpaceIndex + 1, secondSpaceIndex - firstSpaceIndex - 1) + " - " +
+               input.Substring(secondSpaceIndex + 1);
+    }
+
+
+
+    public void ExcelQueryCellInfoHandler(ExcelQueryCellInfoEventArgs<Transaction> args)
+    {
+        if (args.Column.Field == "LongDescr")
+        {
+            args.Cell.Value = ReplaceFirstTwoSpaces(args.Data.LongDescr);
+        }
+    }
+
+
+    public void PdfQueryCellInfoHandler(PdfQueryCellInfoEventArgs<Transaction> args)
+    {
+        if (args.Column.Field == "LongDescr")
+        {
+            args.Cell.Value = ReplaceFirstTwoSpaces(args.Data.LongDescr);
+        }
+    }
+
+
+
+    //FOR WHEN ADDING EXPORT FEATURES TO OTHER TABLES
+    //Pay attention to the comments written to make sure everything is customized correctly
+    public async Task OnToolbarClick(Syncfusion.Blazor.Navigations.ClickEventArgs args)
+    {
+        //INVOICE LOG PDF EXPORT
+        if (args.Item.Id == "InvLogGrid_pdfexport") //Id is combination of Grid's ID and itemname from the Grid Toolbar {ID_itemname}
+                                                    //For the table whose information is being exported, the property of ID="IDName" must be added
+        {
+            PdfExportProperties ExportProperties = new PdfExportProperties();
+            ExportProperties.FileName = $"Invoice Log - {DateTime.Now}.pdf";
+            ExportProperties.IncludeTemplateColumn = true;
+            List<GridColumn> ExportColumns = new List<GridColumn>();
+            #pragma warning disable BL005
+            ExportColumns.Add(new GridColumn() { Field = "ProjectTitle", 
+                                                 HeaderText = "Project Title" });
+
+            ExportColumns.Add(new GridColumn() { Field = "ContractNumber", 
+                                                 HeaderText = "Contract #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "InvoiceNumber", 
+                                                 HeaderText = "Invoice #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "VendorName", 
+                                                 HeaderText = "Vendor" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "PurchaseOrderNumber", 
+                                                 HeaderText = "Commitment #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Status", 
+                                                 HeaderText = "Status" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "Description", 
+                                                 HeaderText = "Description" });
+
+            ExportColumns.Add(new GridColumn() { Field = "IssueDate", 
+                                                 HeaderText = "Request Date", 
+                                                 Format = "MM/dd/yyyy" });
+
+            ExportColumns.Add(new GridColumn() { Field = "PaidDate", 
+                                                 HeaderText = "Paid Date", 
+                                                 Format = "MM/dd/yyyy" });
+
+            ExportColumns.Add(new GridColumn() { Field = "InvoiceTotal", 
+                                                 HeaderText = "Invoice Total", 
+                                                 Format = "C2"});
+            #pragma warning restore BL005
+            ExportProperties.Columns = ExportColumns;
+            Console.WriteLine("Export to PDF button clicked");
+            //NOTE ON invGrid
+            //For all grid exports, a variable of type SfGrid<Model> must be created with Model being the class type used for the particular table.
+            //In this case, Model is of the class Invoices
+            //ADDITIONAL NOTE ON invGrid
+            //The table whose data is being exported must have the property @ref=gridName added for it to not return a null
+            await this.invGrid.ExportToPdfAsync(ExportProperties);
+        }
+
+        //VOUCHERS PDF EXPORT
+        else if (args.Item.Id == "VouchersGrid_pdfexport") //Id is combination of Grid's ID and itemname from the Grid Toolbar {ID_itemname}
+                                                           //For the table whose information is being exported, the property of ID="IDName" must be added
+        {
+            PdfExportProperties ExportProperties = new PdfExportProperties();
+            ExportProperties.FileName = $"Invoice Log - {DateTime.Now}.pdf";
+            List<GridColumn> ExportColumns = new List<GridColumn>();
+            #pragma warning disable BL005
+            ExportColumns.Add(new GridColumn() { Field = "PONo", 
+                                                 HeaderText = "Commitment #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "ContractNumber", 
+                                                 HeaderText = "Contract #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Name", 
+                                                 HeaderText = "Name" });
+
+            ExportColumns.Add(new GridColumn() { Field = "LongDescr", 
+                                                 HeaderText = "Description" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Invoice", 
+                                                 HeaderText = "Invoice" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "Voucher", 
+                                                 HeaderText = "Voucher" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "ChkNo", 
+                                                 HeaderText = "Check #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Posted", 
+                                                 HeaderText = "Posted Date", 
+                                                 Format = "MM/dd/yyyy" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Prog", 
+                                                 HeaderText = "Prog"});
+
+            ExportColumns.Add(new GridColumn() { Field = "RefNo", 
+                                                 HeaderText = "Ref #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Expend", 
+                                                 HeaderText = "Expend", 
+                                                 Format = "C2"});
+            #pragma warning restore BL005
+            ExportProperties.Columns = ExportColumns;
+            Console.WriteLine("Export to PDF button clicked");
+            //NOTE ON voucherGrid
+            //For all grid exports, a variable of type SfGrid<Model> must be created with Model being the class type used for the particular table.
+            //In this case, Model is of the class Transaction
+            //ADDITIONAL NOTE ON voucherGrid
+            //The table whose data is being exported must have the property @ref=gridName added for it to not return a null
+            await this.voucherGrid.ExportToPdfAsync(ExportProperties);
+        }
+
+        //INVOICE LOG EXCEL EXPORT
+        else if (args.Item.Id == "InvLogGrid_excelexport") //Id is combination of Grid's ID and itemname from the Grid Toolbar {ID_itemname}
+                                                           //For the table whose information is being exported, the property of ID="IDName" must be added
+        {
+            ExcelExportProperties ExportProperties = new ExcelExportProperties();
+            ExportProperties.FileName = $"Invoice Log - {DateTime.Now}.xlsx";
+            List<GridColumn> ExportColumns = new List<GridColumn>();
+            #pragma warning disable BL005
+            ExportColumns.Add(new GridColumn() { Field = "ProjectTitle", 
+                                                 HeaderText = "Project Title" });
+
+            ExportColumns.Add(new GridColumn() { Field = "ContractNumber", 
+                                                 HeaderText = "Contract #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "InvoiceNumber", 
+                                                 HeaderText = "Invoice #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "VendorName", 
+                                                 HeaderText = "Vendor" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "PurchaseOrderNumber", 
+                                                 HeaderText = "Commitment #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Status", 
+                                                 HeaderText = "Status" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "Description", 
+                                                 HeaderText = "Description" });
+
+            ExportColumns.Add(new GridColumn() { Field = "IssueDate", 
+                                                 HeaderText = "Request Date", 
+                                                 Format = "MM/dd/yyyy" });
+
+            ExportColumns.Add(new GridColumn() { Field = "PaidDate", 
+                                                 HeaderText = "Paid Date", 
+                                                 Format = "MM/dd/yyyy" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Invoice Total", 
+                                                 HeaderText = "Invoice Total", 
+                                                 Format = "C2"});
+            #pragma warning restore BL005
+            ExportProperties.Columns = ExportColumns;
+            //NOTE ON invGrid
+            //For all grid exports, a variable of type SfGrid<Model> must be created with Model being the class type used for the particular table.
+            //In this case, Model is of the class Invoices
+            //ADDITIONAL NOTE ON invGrid
+            //The table whose data is being exported must have the property @ref=gridName added for it to not return a null
+            await this.invGrid.ExportToExcelAsync(ExportProperties);
+            Console.WriteLine("Export to Excel button clicked");
+        }
+
+        //VOUCHERS EXCEL EXPORT
+        else if (args.Item.Id == "VouchersGrid_excelexport") //Id is combination of Grid's ID and itemname from the Grid Toolbar {ID_itemname}
+                                                             //For the table whose information is being exported, the property of ID="IDName" must be added
+        {
+            ExcelExportProperties ExportProperties = new ExcelExportProperties();
+            ExportProperties.FileName = $"Invoice Log - {DateTime.Now}.xlsx";
+            List<GridColumn> ExportColumns = new List<GridColumn>();
+            #pragma warning disable BL005
+            ExportColumns.Add(new GridColumn() { Field = "PONo", 
+                                                 HeaderText = "Commitment #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "ContractNumber", 
+                                                 HeaderText = "Contract #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Name", 
+                                                 HeaderText = "Name" });
+
+            ExportColumns.Add(new GridColumn() { Field = "LongDescr", 
+                                                 HeaderText = "Description" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Invoice", 
+                                                 HeaderText = "Invoice" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "Voucher", 
+                                                 HeaderText = "Voucher" });
+                                                 
+            ExportColumns.Add(new GridColumn() { Field = "ChkNo", 
+                                                 HeaderText = "Check #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Posted", 
+                                                 HeaderText = "Posted Date", 
+                                                 Format = "MM/dd/yyyy" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Prog", 
+                                                 HeaderText = "Prog"});
+
+            ExportColumns.Add(new GridColumn() { Field = "RefNo", 
+                                                 HeaderText = "Ref #" });
+
+            ExportColumns.Add(new GridColumn() { Field = "Expend", 
+                                                 HeaderText = "Expend", 
+                                                 Format = "C2"});
+            #pragma warning restore BL005
+            ExportProperties.Columns = ExportColumns;
+            //NOTE ON voucherGrid
+            //For all grid exports, a variable of type SfGrid<Model> must be created with Model being the class type used for the particular table.
+            //In this case, Model is of the class Transaction
+            //ADDITIONAL NOTE ON voucherGrid
+            //The table whose data is being exported must have the property @ref=gridName added for it to not return a null
+            await this.voucherGrid.ExportToExcelAsync(ExportProperties);
+            Console.WriteLine("Export to Excel button clicked");
+        }
+        else
+        {
+            //await this.grid.ExportToCsvAsync();
+        }
+    }
+
+}
