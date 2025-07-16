@@ -2,6 +2,8 @@
 /***********************************************************************************************************************************************************
 *  New Project Page
 *
+*  This page has been replaced by a newer .razor page
+*
 *  This page invoved the use of a cascading dropdown menu to create a new project in which new commitments, invoices, etc. could be assigned to.
 *  Depending on the selection made in the campus dropdown menu, the building menu would be populated with different selections.
 *  This required the use of SQL queries that pulled from two seperate databases in order two fully function - one hosted campus information and the other buildings.
