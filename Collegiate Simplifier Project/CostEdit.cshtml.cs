@@ -2,6 +2,8 @@
 /***********************************************************************************************************************************************************
 *  Edit Commitment page
 *
+*  This page has been replaced by a newer .razor page
+*
 *  This page is part of a site built to handle the various financial and logistical aspects of projects across multiple campuses and buildings.
 *
 *
