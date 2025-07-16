@@ -1,0 +1,704 @@
+﻿@page "/PVR/{Id}"
+
+
+
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+@using Microsoft.AspNetCore.DataProtection
+@using Microsoft.EntityFrameworkCore
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Data
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Navigations
+@using Syncfusion.Blazor.SplitButtons
+@using System.ComponentModel.DataAnnotations;
+@using System.Text.Json
+@using TestBlazor.Services
+@using TestBlazor.Components.Models
+@using TestBlazor.Components.Pages
+@using TestBlazor.Components.Shared
+@using TestBlazor.Utility
+
+@inject AccountingService accountingService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDataProtectionProvider DataProtectionProvider
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject ProjectService projectService
+@inject UserService currentUser;
+@inject Microsoft.Extensions.Options.IOptions<ReferenceUrl> ReferenceUrlOptions
+
+<title>Project Variance Report - SDCCD</title>
+
+
+<div class="col-xl-10 
+            mx-xl-auto
+            accordion-style
+            accordion-style-color">
+
+    <SfBreadcrumb>
+        <BreadcrumbItems>
+            <BreadcrumbItem Text="Home"
+                            Url="@($"{ReferenceUrlOptions.Value.PmoURL}")" />
+            <BreadcrumbItem Text="Projects List"
+                            Url="@($"{ReferenceUrlOptions.Value.PmoURL}/projectslist")" />
+            <BreadcrumbItem Text="Project Variance Report" />
+        </BreadcrumbItems>
+    </SfBreadcrumb>
+    <br />
+
+    <h3>Project Variance Report</h3>
+    <hr />
+
+    <ProjectTitle Pid="@decrypId"></ProjectTitle>
+
+    <div style="text-align: right">
+        <GoToMenu Pid="decrypId"/>
+    </div>
+    <br />
+
+
+    <!---------------------------------------------------------------------------->
+    <!-----------------------------SUMMARY TABLE---------------------------------->
+    <!---------------------------------------------------------------------------->
+    <SfGrid DataSource="Summaries">
+        <GridEvents QueryCellInfo="QueryCellInfoHandler" TValue="PvrSummary"></GridEvents>
+        <GridColumns>
+            <!--CURRENT BUDGET-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.CurrentBudget)"
+                                                Format="C2"
+                                                HeaderText="Current Budget"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--PLACEHOLDER-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.Placeholder)"
+                                                Format="C2"
+                                                HeaderText="01-Placeholder"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--PENDING-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.Pending)"
+                                                Format="C2"
+                                                HeaderText="02-Pending"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--APPROVED-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.Approved)"
+                                                Format="C2"
+                                                HeaderText="03-Approved"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--ADJUSTMENT-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.Adjustment)"
+                                                Format="C2"
+                                                HeaderText="04-Adjustment"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--EAC TOTAL-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.EacTotal)"
+                                                Format="C2"
+                                                HeaderText="EAC Total"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--PROJECTED VARIANCE-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.ProjectedVariance)"
+                                                Format="C2"
+                                                HeaderText="Projected Variance"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--APPROVED INVOICES-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.ApprovedInvoices)"
+                                                Format="C2"
+                                                HeaderText="Approved Invoices"></Syncfusion.Blazor.Grids.GridColumn>
+
+            <!--PENDING INVOICES-->
+            <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrSummary.PendingInvoices)"
+                                                Format="C2"
+                                                HeaderText="Pending Invoices"></Syncfusion.Blazor.Grids.GridColumn>
+        </GridColumns>
+    </SfGrid>
+    <br />
+    <br />
+
+
+
+    <!---------------------------------------------------------------------------->
+    <!------------------------------TABLES DATA----------------------------------->
+    <!---------------------------------------------------------------------------->
+    @foreach (var table in Tables)
+    {
+        string tableHeight;
+        if (table.TableData.Count() <= 6) tableHeight = "245px";
+        else tableHeight = "500px";
+
+
+        <SfAccordion>
+            <AccordionItems>
+                <AccordionItem Header="@table.TableType"
+                               Expanded="@(table.TableData.Count() != 0)">
+                    <ContentTemplate>
+                        <SfGrid DataSource="@table.TableData"
+                                AllowFiltering="true"
+                                AllowGrouping="true"
+                                AllowReordering="true"
+                                AllowResizing="true"
+                                AllowSorting="true"
+                                Height="@tableHeight">
+
+                            <!--AMOUNT COLUMNS AGGREGATES-->
+                            <GridAggregates>
+                                <GridAggregate>
+                                    <GridAggregateColumns>
+
+                                        <!--INVOICE AGGREGATE-->
+                                        @if (table.TableType.Contains("2") ||
+                                             table.TableType.Contains("3"))
+                                        {
+                                            <GridAggregateColumn Field="@nameof(PvrData.InvoicesAmount)"
+                                                                 Format="C2"
+                                                                 Type="AggregateType.Sum">
+                                                <FooterTemplate>
+                                                    @{
+                                                        var aggregate = context as AggregateTemplateContext;
+                                                        <div style="text-align: left">
+                                                            <p><b>Inv. Total</b>: <small>@aggregate.Sum</small></p>
+                                                        </div>
+                                                    }
+                                                </FooterTemplate>
+                                            </GridAggregateColumn>
+                                        }
+
+                                        <!--TOTAL AGGREGATE-->
+                                        <GridAggregateColumn Field="@nameof(PvrData.CostAmount)"
+                                                             Format="C2"
+                                                             Type="AggregateType.Sum">
+                                            <FooterTemplate>
+                                                @{
+                                                    var aggregate = context as AggregateTemplateContext;
+                                                    <div style="text-align: left">
+                                                        <p><b>Total</b>: <small>@aggregate.Sum</small></p>
+                                                    </div>
+                                                }
+                                            </FooterTemplate>
+                                        </GridAggregateColumn>      
+
+                                    </GridAggregateColumns>
+                                </GridAggregate>
+                            </GridAggregates>
+
+                            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.CheckBox"></GridFilterSettings>
+
+                            <GridPageSettings PageSize="15"
+                                              PageSizes="true"></GridPageSettings>
+
+
+                            
+                            <GridSortSettings>
+                                <GridSortColumns>
+                                    <GridSortColumn Direction="SortDirection.Ascending"
+                                                    Field="@nameof(PvrData.VendorName)"></GridSortColumn>
+                                </GridSortColumns>
+                            </GridSortSettings>
+
+
+
+                            <GridTemplates>
+                                <EmptyRecordTemplate>
+                                    <span>No EAC Items</span>
+                                </EmptyRecordTemplate>
+                            </GridTemplates>
+
+
+                            <!--GRID COLUMNS-->
+                            <GridColumns>
+                                <!--ITEM TYPE-->
+                                <Syncfusion.Blazor.Grids.GridColumn AllowFiltering="false"
+                                                                    AllowGrouping="false"
+                                                                    Field="@nameof(PvrData.CostType)"
+                                                                    HeaderText="Item Type"
+                                                                    Width="125px">
+                                    <Template>
+                                        @{
+                                            var proj = context as PvrData;
+                                            string itemType = (proj.CostType.Contains("PO") ||
+                                                               proj.CostType.Contains("Adjust")) ? "EAC" : "CO";
+                                            string itemColor = (proj.CostType.Contains("PO") ||
+                                                                proj.CostType.Contains("Adjust")) ? "primary" : "success";
+                                        }
+                                        <span class="e-badge e-badge-@itemColor">@itemType</span>
+                                    </Template>
+                                </Syncfusion.Blazor.Grids.GridColumn>
+
+                                <!--EACI/CONTRACT NUMBER-->
+                                <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.ContractNumber)"
+                                                                    HeaderText="EACi/Contract #"></Syncfusion.Blazor.Grids.GridColumn>
+
+                                <!--VENDOR-->
+                                <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.VendorName)"
+                                                                    HeaderText="Vendor"></Syncfusion.Blazor.Grids.GridColumn>
+
+                                <!--DESCRIPTION-->
+                                <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.Description)"
+                                                                    HeaderText="Description"
+                                                                    Width="400px"></Syncfusion.Blazor.Grids.GridColumn>
+
+
+                                <!--REQUISITION NUMBER-->
+                                @* <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.ReqNum)"
+                                                                    HeaderText="Requisition #"></Syncfusion.Blazor.Grids.GridColumn> *@
+
+
+                                <!--PO NUMBER-->
+                                <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.PoNum)"
+                                                                    HeaderText="PO #"></Syncfusion.Blazor.Grids.GridColumn>
+
+
+                                <!--JOURNAL NUMBER-->
+                                @* <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.JournalNum)"
+                                                                    HeaderText="Journal #">
+                                    <Template>
+                                        @{
+                                            var proj = context as PvrData;
+                                        }
+                                        @(proj.JournalNum ?? "--")
+                                    </Template>                                
+                                </Syncfusion.Blazor.Grids.GridColumn> *@
+
+
+
+
+
+                                <!--INVOICES AMOUNT-->
+                                <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.InvoicesAmount)"
+                                                                    Format="C2"
+                                                                    HeaderText="Invoices">
+                                    <Template>
+                                        @{
+                                            var proj = context as PvrData;
+                                        }
+
+                                        @if (table.TableType.Contains("3"))
+                                        {
+
+                                            @if (@proj.InvoicesAmount > 0){
+                                                string link = $"{ReferenceUrlOptions.Value.PmoURL}/InvoiceLog/{Id}";
+                                                <a href="@link" target="_blank">@proj.InvoicesAmount.ToString("C2")</a>
+                                            }
+                                            else
+                                            {
+                                                @("--")
+                                            }
+                                        }
+                                        else
+                                        {
+                                             @if (@proj.InvoicesAmount > 0)
+                                             { 
+                                                @proj.InvoicesAmount.ToString("C2") 
+                                             }
+                                             else
+                                             {
+                                                @("--");
+                                             }
+                                        }
+                                      
+                                    </Template>
+                                </Syncfusion.Blazor.Grids.GridColumn>
+
+
+                                <!--AMOUNT-->
+                                <Syncfusion.Blazor.Grids.GridColumn Field="@nameof(PvrData.CostAmount)"
+                                                                    Format="C2"
+                                                                    HeaderText="Amount">
+                                    <Template>
+                                        @{
+                                            var proj = context as PvrData;
+                                            string link = $"{ReferenceUrlOptions.Value.PmoURL}";
+
+                                            if (proj.CostType == "PendingChanges")
+                                            {
+                                                string encrypChangeId = DataProtector.EncryptId(DataProtectionProvider, proj.ChangeId);
+                                                link += $"/Pco/Edit/{encrypChangeId}";
+                                            }
+                                            else
+                                            {
+                                                string encrypCid = DataProtector.EncryptId(DataProtectionProvider, proj.CostId);
+                                                link += $"/Cost/View/{encrypCid}";
+                                            }                                            
+                                        }
+                                        <a href="@link" target="_blank">@proj.CostAmount.ToString("C2")</a>
+                                    </Template>
+                                </Syncfusion.Blazor.Grids.GridColumn>
+                            </GridColumns>
+                        </SfGrid>
+                    </ContentTemplate>
+                </AccordionItem>
+            </AccordionItems>
+        </SfAccordion>
+        <br />
+        <br />
+    }
+</div>
+
+
+
+
+
+<style>
+    .accordion-style .e-accordion .e-acrdn-item .e-acrdn-header .e-acrdn-header-content {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+
+    .e-accordion .e-acrdn-item.e-select.e-selected.e-expand-state > .e-acrdn-header > .e-toggle-icon,
+    .e-accordion .e-acrdn-item.e-select.e-expand-state > .e-acrdn-header > .e-toggle-icon,
+    .e-accordion .e-acrdn-item .e-toggle-icon,
+    .e-accordion .e-acrdn-item.e-select.e-acrdn-item > .e-acrdn-header:hover .e-toggle-icon .e-icons.e-tgl-collapse-icon {
+        color: #fff;
+    }
+
+    .e-accordion .e-acrdn-item.e-selected > .e-acrdn-header:focus,
+    .e-accordion .e-acrdn-item .e-acrdn-header:focus {
+        box-shadow: 0 0 0 4px rgba(21, 150, 131, 0.25);
+    }
+
+    .accordion-style.e-accordion .e-acrdn-item.e-select.e-selected.e-expand-state > .e-acrdn-header:focus,
+    .accordion-style.e-accordion .e-acrdn-item.e-selected.e-select.e-expand-state > .e-acrdn-header:hover,
+    .e-accordion .e-acrdn-item.e-item-focus.e-select.e-selected.e-expand-state .e-acrdn-header:hover:focus,
+    .e-accordion .e-acrdn-item.e-selected.e-select.e-expand-state > .e-acrdn-header:active,
+    .e-accordion .custom-class.e-acrdn-item.e-select > .e-acrdn-header,
+    .e-accordion .e-acrdn-item.e-select.e-selected.e-expand-state > .e-acrdn-header,
+    .e-accordion .e-acrdn-item.e-select.e-expand-state > .e-acrdn-header {
+        background-color: #159683;
+    }
+
+    // Accordion content
+
+    .e-accordion .e-acrdn-item.e-select .e-acrdn-panel .e-acrdn-content {
+        background-color: #159683;
+    }
+
+    .e-grid .e-gridcontent .e-rowcell.simplifier-row {
+        background-color: #159683;
+    }
+</style>
+
+
+
+
+
+
+@code {
+    [Parameter]
+    public string Id { get; set; } //Project Id
+
+    List<PvrSummary> Summaries { get; set; } = new List<PvrSummary>();
+
+
+    List<PvrTables> Tables { get; set; } = new List<PvrTables>();
+
+
+    List<PvrData> PlaceholderRows { get; set; } = new List<PvrData>();
+    List<PvrData> PendingRows { get; set; } = new List<PvrData>();
+    List<PvrData> ApprovedRows { get; set; } = new List<PvrData>();
+    List<PvrData> AdjustmentRows { get; set; } = new List<PvrData>();
+
+
+
+    #region Data Sets
+    public IEnumerable<Change> Changes { get; set; }
+
+    public IEnumerable<Cost> PlaceholderPOs { get; set; }
+    public IEnumerable<Change> PlaceholderChanges { get; set; }
+    public IEnumerable<Cost> PendingPOs { get; set; }
+    public IEnumerable<Change> PendingChanges { get; set; }
+    public IEnumerable<Cost> ApprovedPOs { get; set; }
+    public IEnumerable<Change> ApprovedChanges { get; set; }
+    public IEnumerable<Cost> Adjustments { get; set; }
+
+
+    public IEnumerable<Transaction> Adjustment { get; set; }
+    public IEnumerable<Transaction> PSApprovedPOs { get; set; }
+    public IEnumerable<Transaction> PSRequisition { get; set; }
+    public IEnumerable<Transaction> PSAdjustments { get; set; }
+
+    public IEnumerable<ProjectAccountingSummary> ProjectAccounts { get; set; }
+
+    #endregion
+
+
+    #region Costs
+    public decimal ApprovedCosts { get; set; }
+    public decimal ApprovedInvoices { get; set; }
+    public decimal PendingInvoices { get; set; }
+    public decimal PendingCosts { get; set; }
+    public decimal AdjustmentCosts { get; set; }
+    public decimal SumAdjustmentCosts { get; set; }
+    public decimal PlaceholderCosts { get; set; }
+    public decimal PSApprovedCosts { get; set; }
+    public decimal Balance { get; set; }
+    public decimal PsBalance { get; set; }
+    public decimal PendingInvTotal { get; set; }
+    public decimal ApprovedInvTotal { get; set; }
+    public decimal INVTotal { get; set; }
+    public decimal PSInvoiceSumValue { get; set; }
+    public decimal PSAdjustmentSumTotal { get; set; }
+    public decimal PSInvoiceSumTotal { get; set; }
+    public decimal PendingInvoiceTotal { get; set; }
+    public decimal SunAdjustmentTotal { get; set; }
+    public decimal SunPlaceholderTotal { get; set; }
+    public decimal ApprovedInvoiceTotal { get; set; }
+    #endregion
+
+    public int PSPOCall { get; set; }
+    public ProjectAccountingSummary PSdata { get; set; }
+    public ProjectAccountingSummary PSdata2 { get; set; }
+    public ProjectSummary ProjectTitle { get; set; }
+    public ProjectShort Project { get; set; }
+    public string ProjectFundAbbr { get; set; }
+
+    bool IsProcessed = false;
+
+
+    int decrypId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsProcessed)
+        {
+            decrypId = DataProtector.DecryptId(DataProtectionProvider, Id);
+
+
+            ProjectTitle = projectService.ProjectTitle(decrypId);
+
+            #region Remaining Table Data Functions
+            //Pulls in data from SQL database - Mostly Costs table
+            Changes = projectService.ChangesByProject(decrypId);
+            Project = projectService.ProjectShort(decrypId);
+            ApprovedCosts = projectService.ApprovedCosts(decrypId);
+            PendingCosts = projectService.PendingCosts(decrypId);
+            PlaceholderCosts = projectService.PlaceholderCosts(decrypId);
+            Balance = Project.TotalProjectCost - ApprovedCosts - PendingCosts;
+
+
+            PlaceholderPOs = projectService.PlaceholderPOs(decrypId);
+            PlaceholderChanges = projectService.PlaceholderChanges(decrypId);
+
+            PendingPOs = projectService.PendingPOs(decrypId);
+            PendingChanges = projectService.PendingChanges(decrypId);
+
+            ApprovedPOs = projectService.ApprovedPOs(decrypId);
+            ApprovedChanges = projectService.ApprovedChanges(decrypId);
+
+            Adjustments = projectService.Adjustments(decrypId);
+
+            ApprovedInvoices = projectService.InvoiceSummaryByProjectID(decrypId);
+            PendingInvoices = projectService.InvoicesPendingByProjectID(decrypId);
+            ApprovedInvoiceTotal = projectService.ApprovedInvoiceTotal(decrypId);
+            PendingInvoiceTotal = projectService.PendingInvoiceTotal(decrypId);
+            SumAdjustmentCosts = projectService.SumAdjustmentCosts(decrypId);
+            ProjectAccounts = accountingService.ProjectAccounts(Convert.ToString(decrypId));
+            ProjectFundAbbr = projectService.ProjectFunds(decrypId);
+
+
+
+
+
+            //Pulls in PeopleSoft data
+            if (Project.PsProjId != "")
+            {
+                if (Project.PsProjId != null)
+                {
+                    PSdata = accountingService.ProjectSummaryPVR(Project.PsProjId);
+                    PSApprovedPOs = accountingService.PSApprovedPOs(Project.PsProjId);
+                    PSAdjustments = accountingService.PSAdjustments(Project.PsProjId);
+                    PSRequisition = accountingService.PSRequisition(Project.PsProjId);
+                    PSApprovedCosts = accountingService.PSApprovedCosts(Project.PsProjId);
+                    PSInvoiceSumTotal = accountingService.PSInvoiceSumTotal(Project.PsProjId);
+                    PSAdjustmentSumTotal = accountingService.PSAdjustmentSumTotal(Project.PsProjId);
+                }
+            }
+            if (!string.IsNullOrWhiteSpace(Project.PsProjId2))
+            {
+                PSdata2 = accountingService.ProjectSummary(Project.PsProjId2);
+                if (PSdata2 != null)
+                {
+                    PSdata.Budget = PSdata.Budget + PSdata2.Budget;
+                    PSdata.PreEncumbered = PSdata.PreEncumbered + PSdata2.PreEncumbered;
+                    PSdata.Encumb = PSdata.Encumb + PSdata2.Encumb;
+                    PSdata.Expend = PSdata.Expend + PSdata2.Expend;
+                    PSdata.Balance = PSdata.Balance + PSdata2.Balance;
+                    PsBalance = PSdata.Balance - PendingCosts;
+                }
+            }
+            #endregion
+
+            //POPULATE THE DIFFERENT TABLES WITH THE DATA FROM THE APPROPRIATE FUNCTIONS
+            //SUMMARY TABLE
+            #region Summary Table Data
+            Summaries.Add(new PvrSummary { CurrentBudget = (Project.TotalProjectCostPlusEscalation == 0) ? 
+                                                                  Project.TotalProjectCost + Project.EscalationCost 
+                                                                : Project.TotalProjectCostPlusEscalation,
+
+                                           Placeholder = PlaceholderCosts,
+                                           Pending = PendingCosts,
+                                           Approved = ApprovedCosts,
+                                           Adjustment = SumAdjustmentCosts,
+                                           EacTotal = SumAdjustmentCosts + ApprovedCosts + PlaceholderCosts + PendingCosts,
+
+                                           ProjectedVariance = ((Project.TotalProjectCostPlusEscalation == 0) ?
+                                                                    Project.TotalProjectCost + Project.EscalationCost
+                                                                  : Project.TotalProjectCostPlusEscalation) - 
+                                                                (SumAdjustmentCosts + ApprovedCosts + PlaceholderCosts + PendingCosts),
+
+                                           ApprovedInvoices = ApprovedInvoiceTotal,
+                                           PendingInvoices = PendingInvoiceTotal,
+                                           DatabaseType = "simplifier" });
+            #endregion
+
+            //PLACEHOLDER TABLES
+            #region Placeholder Tables Data
+            foreach (var row in PlaceholderPOs)
+            {
+                PlaceholderRows.Add(new PvrData { CostId = row.Id,
+                                                  VendorName = string.IsNullOrWhiteSpace(row.VendorName) ? "--" : row.VendorName,
+                                                  ContractNumber = row.ContractNumber ?? "--",
+                                                  ReqNum = row.RequisitionNumber,
+                                                  PoNum = row.PSNumber ?? "--",
+                                                  JournalNum = null,
+                                                  Description = string.IsNullOrWhiteSpace(row.Materials) ? "--" : row.Materials,
+                                                  InvoicesAmount = 0,
+                                                  CostAmount = row.TotalPrice.Value,
+                                                  CostType = "PlaceholderPOs" });
+            }
+
+            foreach (var row in PlaceholderChanges)
+            {
+                PlaceholderRows.Add(new PvrData { ChangeId = row.Id,
+                                                  CostId = Convert.ToInt32(row.ContractNumber),
+                                                  VendorName = string.IsNullOrWhiteSpace(row.Name) ? "--" : row.Name,
+                                                  ContractNumber = row.ContractNumber ?? "--",
+                                                  ReqNum = row.ReqNum ?? "--",
+                                                  PoNum = row.PONum ?? "--",
+                                                  JournalNum = null,
+                                                  Description = string.IsNullOrWhiteSpace(row.Description) ? "--" : row.Description,
+                                                  InvoicesAmount = 0,
+                                                  CostAmount = row.Amount.Value,
+                                                  CostType = "PlaceholderChanges" });
+            }
+            #endregion
+
+            //PENDING TABLES
+            #region Pending Tables Data
+            foreach (var row in PendingPOs)
+            {
+                PendingRows.Add(new PvrData { CostId = row.Id,
+                                              VendorName = string.IsNullOrWhiteSpace(row.VendorName) ? "--" : row.VendorName,
+                                              ContractNumber = (!string.IsNullOrWhiteSpace(row.ContractNumber)) ? row.ContractNumber : "--",
+                                              ReqNum = row.ReqId ?? "--",
+                                              PoNum = row.PSNumber ?? "--",
+                                              JournalNum = null,
+                                              Description = string.IsNullOrWhiteSpace(row.Materials) ? "--" : row.Materials,
+                                              InvoicesAmount = row.INVTotal.Value,
+                                              CostAmount = row.TotalPrice.Value,
+                                              CostType = "PendingPOs" });
+            }
+
+            foreach (var row in PendingChanges)
+            {
+                PendingRows.Add(new PvrData { ChangeId = row.Id,
+                                              CostId = Convert.ToInt32(row.ContractNumber),
+                                              VendorName = string.IsNullOrWhiteSpace(row.Name) ? "--" : row.Name,
+                                              ContractNumber = (!string.IsNullOrWhiteSpace(row.ContractNumber)) ? row.ContractNumber : "--",
+                                              ReqNum = row.ReqNum ?? "--",
+                                              PoNum = row.PONum ?? "--",
+                                              JournalNum = null,
+                                              Description = string.IsNullOrWhiteSpace(row.Description) ? "--" : row.Description,
+                                              InvoicesAmount = 0,
+                                              CostAmount = row.Amount.Value,
+                                              CostType = "PendingChanges" });
+            }
+            #endregion
+
+            //APPROVED TABLES
+            #region Approved Tables Data
+            foreach (var row in ApprovedPOs)
+            {
+                ApprovedRows.Add(new PvrData { CostId = row.Id,
+                                               VendorName = string.IsNullOrWhiteSpace(row.VendorName) ? "--" : row.VendorName,
+                                               ContractNumber = row.ContractNumber ?? "--",
+                                               ReqNum = row.RequisitionNumber ?? "--",
+                                               PoNum = row.PSNumber ?? "--",
+                                               JournalNum = null,
+                                               Description = string.IsNullOrWhiteSpace(row.Materials) ? "--" : row.Materials,
+                                               InvoicesAmount = row.INVTotal.Value,
+                                               CostAmount = row.TotalPrice.Value,
+                                               CostType = "ApprovedPOs" });
+            }
+            // foreach (var row in ApprovedChanges)
+            // {
+            //     string nco = Convert.ToString(row.CoNum);
+            //     if (row.CoNum != null)
+            //     {
+
+            //         if (nco.Length < 3)
+            //         {
+            //             if (nco.Length < 2) { nco = $"CO-00{nco}"; }
+            //             else { nco = $"CO-0{nco}"; }
+            //         }
+            //     }
+            //     else
+            //     {
+            //         nco = "--";
+            //     }
+
+            //     ApprovedRows.Add(new PvrData { VendorName = string.IsNullOrWhiteSpace(row.Name) ? "--" : row.Name,
+            //                                    ContractNumber = row.ContractNumber ?? "--",
+            //                                    ReqNum = row.PcoNum ?? "--",
+            //                                    PoNum = nco,
+            //                                    JournalNum = null,
+            //                                    Description = string.IsNullOrWhiteSpace(row.Description) ? "--" : row.Description,
+            //                                    InvoicesAmount = 0,
+            //                                    CostAmount = row.Amount.Value,
+            //                                    CostType = "ApprovedChanges" });
+            // }
+            #endregion
+
+            //ADJUSTMENT TABLE
+            #region Adjustment Tables Data
+            foreach (var row in Adjustments)
+            {
+                AdjustmentRows.Add(new PvrData { CostId = row.Id,
+                                                 VendorName = string.IsNullOrWhiteSpace(row.VendorName) ? "--" : row.VendorName,
+                                                 ContractNumber = row.ContractNumber ?? "--",
+                                                 ReqNum = row.RequisitionNumber ?? "--",
+                                                 PoNum = row.PSNumber ?? "--",
+                                                 JournalNum = null,
+                                                 Description = string.IsNullOrWhiteSpace(row.Materials) ? "--" : row.Materials,
+                                                 InvoicesAmount = 0,
+                                                 CostAmount = row.TotalPrice.Value,
+                                                 CostType = "Adjustments" });
+            }
+            #endregion
+
+
+            Tables.Add(new PvrTables { TableData = PlaceholderRows, 
+                                       TableType = "01-\"Placeholder\" EACi's" /* This resolves as 01-"Placeholder" EAC's */ });
+
+            Tables.Add(new PvrTables { TableData = PendingRows, 
+                                       TableType = "02-\"Pending\" EACi's" /* This resolves as 02-"Pending" EAC's */ });
+
+            Tables.Add(new PvrTables { TableData = ApprovedRows, 
+                                       TableType = "03-\"Approved\" EACi's" /* This resolves as 03-"Approved" EAC's */ });
+
+            Tables.Add(new PvrTables { TableData = AdjustmentRows, 
+                                       TableType = "04-\"Adjustment\" EACi's" /* This resolves as 04-"Adjustment" EAC's */ });
+
+            IsProcessed = true;
+        }
+    }
+
+
+
+    void QueryCellInfoHandler(QueryCellInfoEventArgs<PvrSummary> args)
+    {
+        if (args.Data.DatabaseType == "simplifier")
+        {
+            args.Cell.AddClass(new string[] { "simplifier-row" });
+        }
+    }
+}
